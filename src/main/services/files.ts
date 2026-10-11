@@ -10,6 +10,7 @@ interface FileRow {
   id: number
   folderId: number
   folderName: string | null
+  folderPath: string | null
   path: string
   name: string
   ext: string | null
@@ -36,6 +37,7 @@ const SELECT_FILE = `
   SELECT fi.id,
          fi.folder_id       AS folderId,
          fo.name            AS folderName,
+         fo.path            AS folderPath,
          fi.path,
          fi.name,
          fi.ext,
@@ -55,6 +57,7 @@ function mapFile(row: FileRow): TrackedFile {
     folderId: row.folderId,
     folderName: row.folderName,
     path: row.path,
+    relativePath: row.folderPath ? relative(row.folderPath, row.path) || row.name : row.path,
     name: row.name,
     ext: row.ext,
     size: Number(row.size ?? 0),

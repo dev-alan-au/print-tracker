@@ -64,6 +64,12 @@ export interface TrackedFile {
   folderId: number
   folderName: string | null
   path: string
+  /**
+   * Path relative to the watched folder, e.g. `reports/q3.pdf`. Absolute paths
+   * are long enough to bury the part that identifies the file, so this is what
+   * the list shows and the absolute path lives in the tooltip.
+   */
+  relativePath: string
   name: string
   ext: string | null
   size: number

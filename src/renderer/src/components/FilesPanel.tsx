@@ -296,7 +296,12 @@ export default function FilesPanel({
                           </>
                         )}
                       </div>
-                      <div className="cell-sub">{file.path}</div>
+                      {/* Relative to the watched folder, with the full path on
+                          hover: the absolute path is mostly the same for every
+                          row, so showing it verbatim buries the useful part. */}
+                      <div className="cell-sub" title={file.path}>
+                        {file.relativePath}
+                      </div>
                     </td>
                     <td className="cell-sub">{file.folderName ?? t('common.emptyValue')}</td>
                     <td className="num">{formatBytes(file.size, locale)}</td>
