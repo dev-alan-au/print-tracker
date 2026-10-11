@@ -40,7 +40,7 @@ export default function FilesPanel({
         window.api.files.list({
           folderId: folderId === 'all' ? null : Number(folderId),
           search: debouncedSearch,
-          onlyPrinted,
+          printed: onlyPrinted ? 'printed' : undefined,
           sort,
           direction,
           limit: 500

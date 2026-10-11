@@ -217,8 +217,10 @@ export class FileService {
       const pattern = likePattern(query.search.trim())
       params.push(pattern, pattern)
     }
-    if (query.onlyPrinted) {
+    if (query.printed === 'printed') {
       where.push('fi.printed_count > 0')
+    } else if (query.printed === 'unprinted') {
+      where.push('fi.printed_count = 0')
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''

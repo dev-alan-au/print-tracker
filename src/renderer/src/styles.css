@@ -629,6 +629,12 @@ input[type='range'] {
   flex-direction: column;
 }
 
+/* Long lists sit inside a panel, so cap them rather than growing the page. */
+.list-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
 .list-item {
   display: flex;
   align-items: center;

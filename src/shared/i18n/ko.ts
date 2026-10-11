@@ -11,6 +11,7 @@ export const ko: Catalog = {
   /* ------------------------------------------------------------------ app */
   'app.subtitle': '파일 및 인쇄 기록',
 
+  'nav.overview': '개요',
   'nav.dashboard': '대시보드',
   'nav.folders': '폴더',
   'nav.files': '파일',
@@ -37,6 +38,7 @@ export const ko: Catalog = {
   'common.loading': '불러오는 중…',
   'common.emptyValue': '—',
   'common.refreshing': '새로 고치는 중…',
+  'common.never': '없음',
 
   'source.watcher': '폴더 감시',
   'source.spooler': '스풀러',
@@ -77,6 +79,16 @@ export const ko: Catalog = {
   'dashboard.recent.title': '최근 활동',
   'dashboard.recent.empty': '아직 인쇄된 항목이 없습니다.',
   'dashboard.loading': '대시보드를 불러오는 중…',
+
+  /* -------------------------------------------------------------- overview */
+  'overview.title': '개요',
+  'overview.subtitle': '인쇄된 파일과 아직 인쇄되지 않은 파일입니다.',
+  'overview.printed.title': '인쇄됨',
+  'overview.notPrinted.title': '인쇄 안 됨',
+  'overview.printed.empty': '아직 인쇄된 파일이 없습니다.',
+  'overview.notPrinted.empty': '추적 중인 모든 파일이 인쇄되었습니다.',
+  'overview.summary': '전체 {total}개 중 {printed}개 인쇄됨',
+  'overview.loading': '개요를 불러오는 중…',
 
   /* -------------------------------------------------------------- folders */
   'folders.title': '폴더',

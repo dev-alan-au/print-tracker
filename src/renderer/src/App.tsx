@@ -11,6 +11,7 @@ import Dashboard from './components/Dashboard'
 import FilesPanel from './components/FilesPanel'
 import FoldersPanel from './components/FoldersPanel'
 import HistoryPanel from './components/HistoryPanel'
+import OverviewPanel from './components/OverviewPanel'
 import SettingsPanel from './components/SettingsPanel'
 import Toasts, { type Toast } from './components/Toasts'
 import { I18nProvider, createI18n } from './i18n'
@@ -22,9 +23,10 @@ import {
   writeCachedTheme
 } from './lib/preferences'
 
-type TabId = 'dashboard' | 'folders' | 'files' | 'history' | 'settings'
+type TabId = 'overview' | 'dashboard' | 'folders' | 'files' | 'history' | 'settings'
 
 const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
+  { id: 'overview', labelKey: 'nav.overview', icon: '◉' },
   { id: 'dashboard', labelKey: 'nav.dashboard', icon: '◆' },
   { id: 'folders', labelKey: 'nav.folders', icon: '▤' },
   { id: 'files', labelKey: 'nav.files', icon: '▦' },
@@ -33,7 +35,7 @@ const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
 ]
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>('dashboard')
+  const [tab, setTab] = useState<TabId>('overview')
   const [refreshToken, setRefreshToken] = useState(0)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [spoolerStatus, setSpoolerStatus] = useState<SpoolerStatus | null>(null)
@@ -144,6 +146,7 @@ export default function App() {
   }, [refreshToken])
 
   const counts: Record<TabId, number | null> = {
+    overview: null,
     dashboard: null,
     folders: stats?.folderCount ?? null,
     files: stats?.fileCount ?? null,
@@ -215,6 +218,9 @@ export default function App() {
       </aside>
 
       <main className="main">
+        {tab === 'overview' ? (
+          <OverviewPanel refreshToken={refreshToken} onToast={addToast} />
+        ) : null}
         {tab === 'dashboard' ? <Dashboard stats={stats} onNavigate={setTab} /> : null}
         {tab === 'folders' ? (
           <FoldersPanel refreshToken={refreshToken} onChanged={refresh} onToast={addToast} />

@@ -8,6 +8,7 @@ export const en = {
   /* ------------------------------------------------------------------ app */
   'app.subtitle': 'Files & print history',
 
+  'nav.overview': 'Overview',
   'nav.dashboard': 'Dashboard',
   'nav.folders': 'Folders',
   'nav.files': 'Files',
@@ -34,6 +35,7 @@ export const en = {
   'common.loading': 'Loading…',
   'common.emptyValue': '—',
   'common.refreshing': 'refreshing…',
+  'common.never': 'never',
 
   'source.watcher': 'Folder watch',
   'source.spooler': 'Spooler',
@@ -74,6 +76,16 @@ export const en = {
   'dashboard.recent.title': 'Recent activity',
   'dashboard.recent.empty': 'Nothing printed yet.',
   'dashboard.loading': 'Loading dashboard…',
+
+  /* -------------------------------------------------------------- overview */
+  'overview.title': 'Overview',
+  'overview.subtitle': 'Which files have been printed, and which have not.',
+  'overview.printed.title': 'Printed',
+  'overview.notPrinted.title': 'Not printed',
+  'overview.printed.empty': 'Nothing has been printed yet.',
+  'overview.notPrinted.empty': 'Every tracked file has been printed.',
+  'overview.summary': '{printed} of {total} files printed',
+  'overview.loading': 'Loading overview…',
 
   /* -------------------------------------------------------------- folders */
   'folders.title': 'Folders',

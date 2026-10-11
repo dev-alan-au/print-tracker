@@ -62,7 +62,8 @@ export interface TrackedFile {
 export interface FileQuery {
   folderId?: number | null
   search?: string
-  onlyPrinted?: boolean
+  /** Restrict to files that have, or have never, been printed. */
+  printed?: 'printed' | 'unprinted'
   sort?: 'name' | 'recent' | 'prints' | 'size' | 'lastPrinted'
   direction?: 'asc' | 'desc'
   limit?: number
