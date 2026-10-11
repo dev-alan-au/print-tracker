@@ -289,6 +289,36 @@ export const ko: Catalog = {
   'settings.reset.confirmLabel': '확인하려면 {word}을(를) 입력하세요',
   'settings.reset.confirm': '지금 초기화',
   'settings.reset.working': '초기화 중…',
+
+  /* ----------------------------------------------------- settings: restore */
+  'settings.backups.restore': '복원',
+  'settings.backups.restoreFromFile': '파일에서 복원…',
+  'settings.restore.title': '백업에서 복원',
+  'settings.restore.file': '파일',
+  'settings.restore.size': '크기',
+  'settings.restore.modified': '마지막 수정',
+  'settings.restore.version': '데이터베이스 버전',
+  'settings.restore.versionValue': '{found} (이 앱은 {supported}까지 읽음)',
+  'settings.restore.checkFailed': '파일을 검사할 수 없습니다.',
+  'settings.restore.okIntro': '모든 검사를 통과한 백업입니다. 포함된 항목:',
+  'settings.restore.blockedTitle': '이 파일은 복원할 수 없습니다:',
+  'settings.restore.undo': '현재 데이터는 먼저 새 백업으로 저장되므로 복원을 되돌릴 수 있습니다.',
+  'settings.restore.confirm': '지금 복원',
+  'settings.restore.working': '복원 중…',
+
+  'settings.restore.problem.missing': '파일이 더 이상 존재하지 않습니다.',
+  'settings.restore.problem.notAFile': '파일이 아니라 폴더입니다.',
+  'settings.restore.problem.empty': '파일이 비어 있습니다.',
+  'settings.restore.problem.notADatabase': 'Print Tracker 데이터베이스가 아닙니다.',
+  'settings.restore.problem.corrupt': '데이터베이스가 손상되어 무결성 검사에 실패했습니다.',
+  'settings.restore.problem.missingTables': '필요한 테이블이 없습니다: {items}',
+  'settings.restore.problem.missingColumns': '필요한 열이 없습니다: {items}',
+  'settings.restore.problem.newerSchema':
+    '더 새로운 버전의 앱에서 만든 백업입니다 (데이터베이스 {found}, 이 앱은 {supported}까지 읽음). 앱을 업데이트한 후 다시 시도하세요.',
+  'settings.restore.problem.foreignKeyViolations':
+    '존재하지 않는 행을 참조하고 있어 데이터가 불완전합니다.',
+  'settings.restore.problem.sameFile':
+    '앱이 현재 사용 중인 데이터베이스입니다. 백업 파일을 선택하세요.',
   'settings.toast.copied': '데이터베이스 경로를 복사했습니다.',
 
   /* -------------------------------------------------------- system toasts */

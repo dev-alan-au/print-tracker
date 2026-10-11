@@ -46,7 +46,10 @@ export const IPC = {
   },
   app: {
     previewReset: 'app:preview-reset',
-    reset: 'app:reset'
+    reset: 'app:reset',
+    inspectBackup: 'app:inspect-backup',
+    restoreBackup: 'app:restore-backup',
+    pickBackupFile: 'app:pick-backup-file'
   },
   events: {
     filesChanged: 'event:files-changed',

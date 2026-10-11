@@ -82,6 +82,16 @@ Handy on a machine you cannot look at directly (remote box, CI, bug report).
 `PT_DEBUG` logs whether `window.api` reached the renderer and how the app mounted;
 `PT_DEBUG_SHOT` also walks the navigation and saves a screenshot of each screen.
 
+Because screenshots are useless for anything behind a click or a keystroke, two
+more variables drive the UI while the shots are taken:
+
+| Variable                | Effect                                                                    |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `PT_DEBUG_SEARCH=<term>`| Types the term into the search box on the Overview and Files screens.      |
+| `PT_DEBUG_RESET=open`   | Opens the reset dialog on the Settings screen.                             |
+| `PT_DEBUG_RESET=apply`  | Also types the confirmation and clicks through, performing a real reset.   |
+| `PT_DEBUG_RESTORE=<row>`| Opens the restore dialog for that snapshot row (0 is the newest).          |
+
 ## Windows print spooler setup
 
 By default the operational print log is **disabled**, so Print Tracker falls back
@@ -199,6 +209,51 @@ Deleting a folder stops tracking it and removes its indexed files, but
 **print history is kept** — `print_events.file_id` is set to `NULL` instead of
 cascading, and the document name is stored on the event itself.
 
+### Snapshots
+
+A `backups/` folder sits next to the database. A snapshot is written on every
+launch and prunes to the ten newest, so a bad session can be rolled back.
+
+Snapshots come from SQLite's `VACUUM INTO`, never a file copy: with WAL enabled
+the newest writes live in the `-wal` sidecar, so copying the `.db` alone would
+silently lose them. `VACUUM INTO` writes one consistent file.
+
+### Restoring, and what "file check" means
+
+**Settings → Restore from file…**, or **Restore** on any snapshot in the list.
+
+Nothing is written until the candidate has been checked. It is attached to the
+live connection and asked:
+
+| Check                | Refuses when                                                       |
+| -------------------- | ------------------------------------------------------------------ |
+| File                 | missing, a directory, or empty                                      |
+| `integrity_check`    | the database is damaged                                             |
+| Required tables      | `folders`, `files`, `print_events` or `settings` is absent          |
+| Required columns     | a table the copy depends on lacks a column it needs                 |
+| `user_version`       | the snapshot came from a *newer* build of the app                   |
+| `foreign_key_check`  | the database references rows that are not in it                     |
+| Self-reference       | the file *is* the database the app is currently using               |
+
+Only when every check passes does the dialog report what the snapshot contains
+and enable **Restore now**. The current data is snapshotted first, so a restore
+is itself reversible.
+
+The rows are copied into the existing schema rather than the file being
+swapped. A snapshot from an older build therefore restores cleanly: columns it
+lacks are left at their defaults, and no migration has to be replayed.
+
+### Resetting
+
+**Settings → Danger zone → Reset application…** returns the app to a first-run
+state: folders, indexed files, print events and settings are all deleted. Your
+documents are untouched.
+
+It deletes rows rather than the database file, so the schema, indexes and
+`user_version` survive, and `sqlite_sequence` is cleared so ids start at 1
+again. The dialog shows the counts it is about to destroy, offers a snapshot by
+default, and requires typing a confirmation word.
+
 ## Project structure
 
 ```
@@ -208,12 +263,14 @@ src/
   main/
     db/              SQLite wrapper and versioned migrations
     services/        folders · files(index) · prints · watcher · spooler · settings
+                     backups · query · reset · restore
     util/            ISO date helpers
     app.ts           wires the services together
     ipc.ts           ipcMain handlers
     index.ts         window + app lifecycle
   preload/           contextBridge surface (window.api)
-  renderer/          React UI (Dashboard, Folders, Files, Print history, Settings)
+  renderer/          React UI (Overview, Dashboard, Folders, Files, Print history,
+                     Query, Settings)
 scripts/
   smoke-db.cjs       exercises the real schema against the SQLite driver
   check-i18n.ts      translation catalogue consistency

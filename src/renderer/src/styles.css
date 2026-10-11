@@ -823,6 +823,17 @@ input[type='range'] {
   display: block;
 }
 
+/* Reasons a candidate snapshot was refused - a list reads better than a
+   sentence once there is more than one problem. */
+.problem-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.problem-list li + li {
+  margin-top: 4px;
+}
+
 /* ---------------------------------------------------------------- query */
 
 .query-layout {

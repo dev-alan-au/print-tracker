@@ -236,6 +236,48 @@ export interface ResetReport {
   backupsRemoved: number
 }
 
+/* ---------------------------------------------------------------- restore */
+
+/**
+ * Why a candidate file cannot be restored. Reported as codes so the renderer
+ * explains each one in the user's language.
+ */
+export type RestoreProblem =
+  | 'missing'
+  | 'notAFile'
+  | 'empty'
+  | 'notADatabase'
+  | 'corrupt'
+  | 'missingTables'
+  | 'missingColumns'
+  | 'newerSchema'
+  | 'foreignKeyViolations'
+  | 'sameFile'
+
+export interface RestoreInspection {
+  path: string
+  /** True only when every check passed. */
+  ok: boolean
+  problems: RestoreProblem[]
+  missingTables: string[]
+  /** Dotted `table.column` names the candidate does not provide. */
+  missingColumns: string[]
+  counts: ResetCounts
+  /** Schema version recorded inside the candidate. */
+  schemaVersion: number
+  /** Schema version this build understands. */
+  supportedVersion: number
+  sizeBytes: number
+  modifiedAt: string | null
+}
+
+export interface RestoreReport {
+  restored: ResetCounts
+  /** Snapshot of the data that was replaced, so a restore can be undone. */
+  backup: BackupEntry
+  schemaVersion: number
+}
+
 /* ---------------------------------------------------------------- settings */
 
 export interface AppSettings {
@@ -333,6 +375,9 @@ export interface PrintTrackerApi {
   app: {
     previewReset(): Promise<ResetPreview>
     reset(options: ResetOptions): Promise<ResetReport>
+    inspectBackup(path: string): Promise<RestoreInspection>
+    restoreBackup(path: string): Promise<RestoreReport>
+    pickBackupFile(): Promise<string | null>
   }
   events: {
     onFilesChanged(cb: () => void): () => void

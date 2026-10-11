@@ -164,6 +164,17 @@ function createWindow(): void {
                 }
               }
 
+              // `PT_DEBUG_RESTORE=<row>` opens the restore dialog for that
+              // backup row, so the file check can be inspected from a shot.
+              const restoreRow = process.env['PT_DEBUG_RESTORE']
+              if (restoreRow && tabs[index] === 'settings') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelectorAll('.list-item')[${Number(restoreRow)}]
+                     ?.querySelector('.btn.tiny:not(.danger)')?.click()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 1200))
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`

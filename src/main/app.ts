@@ -4,6 +4,7 @@ import type {
   PrintEvent,
   ResetOptions,
   ResetReport,
+  RestoreReport,
   SpoolerStatus,
   ToastMessage,
   TrackedFolder,
@@ -16,6 +17,7 @@ import { FolderService } from './services/folders'
 import { PrintService } from './services/prints'
 import { QueryService } from './services/query'
 import { ResetService } from './services/reset'
+import { RestoreService } from './services/restore'
 import { SettingsService } from './services/settings'
 import { SpoolerService } from './services/spooler'
 import { WatcherService } from './services/watcher'
@@ -38,6 +40,7 @@ export interface AppContext {
   readonly backups: BackupService
   readonly query: QueryService
   readonly reset: ResetService
+  readonly restore: RestoreService
   readonly databasePath: string
 
   addFolder(input: AddFolderInput): TrackedFolder
@@ -46,6 +49,7 @@ export interface AppContext {
   rescanFolder(id: number): number
   rescanAll(): number
   resetApp(options: ResetOptions): ResetReport
+  restoreBackup(path: string): RestoreReport
   startWatching(): void
   stopWatching(): void
   dispose(): void
@@ -62,6 +66,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   const backups = new BackupService(db, join(dirname(databasePath), 'backups'))
   const query = new QueryService(db)
   const reset = new ResetService(db, backups)
+  const restore = new RestoreService(db, backups)
 
   const watcher = new WatcherService(
     folders,
@@ -144,6 +149,14 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     return report
   }
 
+  /** Same re-sync as a reset: the folder table has been replaced wholesale. */
+  const restoreBackup = (path: string): RestoreReport => {
+    const report = restore.restore(path)
+    watcher.refresh()
+    events.filesChanged()
+    return report
+  }
+
   const stopWatching = (): void => {
     watcher.stop()
   }
@@ -159,6 +172,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     backups,
     query,
     reset,
+    restore,
     databasePath,
     addFolder,
     updateFolder,
@@ -166,6 +180,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     rescanFolder,
     rescanAll,
     resetApp,
+    restoreBackup,
     startWatching,
     stopWatching,
     dispose(): void {

@@ -287,6 +287,37 @@ export const en = {
   'settings.reset.confirmLabel': 'Type {word} to confirm',
   'settings.reset.confirm': 'Reset now',
   'settings.reset.working': 'Resetting…',
+
+  /* ----------------------------------------------------- settings: restore */
+  'settings.backups.restore': 'Restore',
+  'settings.backups.restoreFromFile': 'Restore from file…',
+  'settings.restore.title': 'Restore from a snapshot',
+  'settings.restore.file': 'File',
+  'settings.restore.size': 'Size',
+  'settings.restore.modified': 'Last modified',
+  'settings.restore.version': 'Database version',
+  'settings.restore.versionValue': '{found} (this app reads {supported})',
+  'settings.restore.checkFailed': 'The file could not be checked.',
+  'settings.restore.okIntro': 'This snapshot passed every check and contains:',
+  'settings.restore.blockedTitle': 'This file cannot be restored:',
+  'settings.restore.undo':
+    'Your current data is saved as a new snapshot first, so a restore can be undone.',
+  'settings.restore.confirm': 'Restore now',
+  'settings.restore.working': 'Restoring…',
+
+  'settings.restore.problem.missing': 'The file no longer exists.',
+  'settings.restore.problem.notAFile': 'This is a folder, not a file.',
+  'settings.restore.problem.empty': 'The file is empty.',
+  'settings.restore.problem.notADatabase': 'This is not a Print Tracker database.',
+  'settings.restore.problem.corrupt': 'The database is damaged and failed its integrity check.',
+  'settings.restore.problem.missingTables': 'Expected tables are missing: {items}',
+  'settings.restore.problem.missingColumns': 'Expected columns are missing: {items}',
+  'settings.restore.problem.newerSchema':
+    'This snapshot was written by a newer version of the app (database {found}, this app reads {supported}). Update the app and try again.',
+  'settings.restore.problem.foreignKeyViolations':
+    'The database refers to rows that are not in it, so it is incomplete.',
+  'settings.restore.problem.sameFile':
+    'This is the database the app is currently using. Choose a snapshot instead.',
   'settings.toast.copied': 'Database path copied.',
 
   /* -------------------------------------------------------- system toasts */

@@ -11,6 +11,7 @@ import type {
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import ResetDialog from './ResetDialog'
+import RestoreDialog from './RestoreDialog'
 
 export default function SettingsPanel({
   refreshToken,
@@ -33,6 +34,8 @@ export default function SettingsPanel({
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [busy, setBusy] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
+  /** Path of the snapshot being restored, chosen from a row or from disk. */
+  const [restorePath, setRestorePath] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -117,6 +120,15 @@ export default function SettingsPanel({
       await window.api.backups.remove(entry.path)
       onToast({ kind: 'info', messageKey: 'settings.backups.removed' })
       setBackups(await window.api.backups.list())
+    } catch (caught) {
+      onToast({ kind: 'error', message: errorMessage(caught) })
+    }
+  }
+
+  const pickBackupFile = async (): Promise<void> => {
+    try {
+      const chosen = await window.api.app.pickBackupFile()
+      if (chosen) setRestorePath(chosen)
     } catch (caught) {
       onToast({ kind: 'error', message: errorMessage(caught) })
     }
@@ -297,6 +309,9 @@ export default function SettingsPanel({
         <div className="panel-head">
           <h2>{t('settings.backups.title')}</h2>
           <span className="spacer" />
+          <button type="button" className="btn" disabled={busy} onClick={() => void pickBackupFile()}>
+            {t('settings.backups.restoreFromFile')}
+          </button>
           <button type="button" className="btn" disabled={busy} onClick={() => void createBackup()}>
             {t('settings.backups.create')}
           </button>
@@ -316,6 +331,14 @@ export default function SettingsPanel({
                       {formatBytes(entry.size, locale)}
                     </div>
                   </span>
+                  <button
+                    type="button"
+                    className="btn tiny"
+                    disabled={busy}
+                    onClick={() => setRestorePath(entry.path)}
+                  >
+                    {t('settings.backups.restore')}
+                  </button>
                   <button
                     type="button"
                     className="btn tiny danger"
@@ -409,6 +432,14 @@ export default function SettingsPanel({
 
       {resetOpen ? (
         <ResetDialog onClose={() => setResetOpen(false)} onToast={onToast} />
+      ) : null}
+
+      {restorePath ? (
+        <RestoreDialog
+          path={restorePath}
+          onClose={() => setRestorePath(null)}
+          onToast={onToast}
+        />
       ) : null}
     </>
   )

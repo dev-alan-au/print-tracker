@@ -5,7 +5,7 @@
  * FolderService / FileService / PrintService / WatcherService against a
  * throwaway directory tree.
  */
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Database } from 'node-sqlite3-wasm'
 import { Db } from '../src/main/db/database'
@@ -15,6 +15,7 @@ import { FolderService } from '../src/main/services/folders'
 import { PrintService } from '../src/main/services/prints'
 import { QueryService } from '../src/main/services/query'
 import { ResetService } from '../src/main/services/reset'
+import { RestoreService } from '../src/main/services/restore'
 import { SettingsService } from '../src/main/services/settings'
 import { SpoolerService } from '../src/main/services/spooler'
 import { WatcherService } from '../src/main/services/watcher'
@@ -376,6 +377,184 @@ async function main(): Promise<void> {
       threw = true
     }
     assert(threw, 'expected the service to refuse')
+  })
+
+  /* ------------------------------------------------------------- restore */
+
+  const restore = new RestoreService(db, backups)
+  const countAll = () => ({
+    folders: Number(db.get('SELECT COUNT(*) AS c FROM folders').c),
+    files: Number(db.get('SELECT COUNT(*) AS c FROM files').c),
+    prints: Number(db.get('SELECT COUNT(*) AS c FROM print_events').c)
+  })
+
+  const goodSnapshot = backups.create('manual')
+  const goodCounts = countAll()
+
+  check('a healthy snapshot passes the file check', () => {
+    const inspection = restore.inspect(goodSnapshot.path)
+    eq(inspection.problems, [], 'problems')
+    assert(inspection.ok, 'expected the snapshot to be restorable')
+    eq(inspection.counts, goodCounts, 'reported counts')
+    eq(inspection.schemaVersion, 3, 'schema version of the candidate')
+    eq(inspection.supportedVersion, 3, 'schema version this build supports')
+    assert(inspection.sizeBytes > 0, 'size')
+  })
+
+  check('the check leaves the candidate file untouched', () => {
+    // Inspecting attaches the file read-only in spirit only, so prove the file
+    // really is byte-for-byte identical afterwards.
+    const before = readFileSync(goodSnapshot.path)
+    restore.inspect(goodSnapshot.path)
+    assert(readFileSync(goodSnapshot.path).equals(before), 'the file was modified by the check')
+  })
+
+  check('restore replaces the data and keeps a way back', () => {
+    prints.addManual({ documentName: 'after-the-snapshot' })
+    eq(countAll().prints, goodCounts.prints + 1, 'the probe print was recorded')
+
+    const report = restore.restore(goodSnapshot.path)
+
+    eq(report.restored, goodCounts, 'the report describes what was restored')
+    eq(countAll(), goodCounts, 'live counts match the snapshot')
+    eq(prints.list({ search: 'after-the-snapshot' }).total, 0, 'the probe print was replaced')
+    assert(report.backup, 'expected a snapshot of the replaced data')
+
+    // The snapshot taken just before the restore must contain what was lost,
+    // otherwise calling the restore reversible would be a lie.
+    const copy = new Database(report.backup.path, { readOnly: true })
+    eq(
+      Number(
+        copy.get(
+          "SELECT COUNT(*) AS c FROM print_events WHERE document_name = 'after-the-snapshot'"
+        ).c
+      ),
+      1,
+      'the replaced data is recoverable'
+    )
+    copy.close()
+  })
+
+  check('restore leaves no dangling references behind', () => {
+    eq(db.all('PRAGMA foreign_key_check'), [], 'foreign key violations')
+  })
+
+  check('restore rewinds the id counters to the restored rows', () => {
+    const maxId = Number(db.get('SELECT MAX(id) AS m FROM folders').m)
+    // FolderService only tracks directories that exist.
+    mkdirSync(join(ROOT, 'restore-probe'), { recursive: true })
+    const folder = folders.add({ path: join(ROOT, 'restore-probe'), kind: 'library' })
+    eq(folder.id, maxId + 1, 'the next folder continues after the restored ids')
+    folders.remove(folder.id)
+  })
+
+  check('restoring a snapshot from an older build fills in what it lacks', () => {
+    // Drop the v2 columns from a copy: a snapshot taken before they existed
+    // must still restore, with the new columns left at their defaults.
+    const file = join(ROOT, 'legacy.db')
+    copyFileSync(goodSnapshot.path, file)
+    const legacy = new Database(file)
+    legacy.exec('ALTER TABLE print_events DROP COLUMN note_key')
+    legacy.exec('ALTER TABLE print_events DROP COLUMN note_params')
+    legacy.exec('PRAGMA user_version = 2')
+    legacy.close()
+
+    const inspection = restore.inspect(file)
+    eq(inspection.problems, [], 'an older snapshot should be accepted')
+    eq(inspection.schemaVersion, 2, 'reported version')
+
+    eq(restore.restore(file).restored, goodCounts, 'restored counts')
+    eq(countAll(), goodCounts, 'the data came back')
+    const note = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM print_events WHERE note_key IS NULL')
+    eq(Number(note?.n), goodCounts.prints, 'the new columns defaulted to null')
+  })
+
+  /* ------------------------------------- candidates that must be refused */
+
+  check('a missing file is reported rather than thrown', () => {
+    const inspection = restore.inspect(join(ROOT, 'does-not-exist.db'))
+    eq(inspection.problems, ['missing'], 'problems')
+    assert(!inspection.ok, 'not restorable')
+  })
+
+  check('a directory is not a restorable file', () => {
+    const inspection = restore.inspect(ROOT)
+    eq(inspection.problems, ['notAFile'], 'problems')
+  })
+
+  check('an empty file is rejected before it is opened', () => {
+    const file = join(ROOT, 'empty.db')
+    writeFileSync(file, '')
+    eq(restore.inspect(file).problems, ['empty'], 'problems')
+  })
+
+  check('a file that is not a database is rejected', () => {
+    const file = join(ROOT, 'not-a-db.db')
+    writeFileSync(file, 'plain text pretending to be a snapshot')
+    eq(restore.inspect(file).problems, ['notADatabase'], 'problems')
+  })
+
+  check('the live database cannot be restored over itself', () => {
+    // Attaching the live file and then clearing it would delete the very rows
+    // the copy was meant to read.
+    eq(restore.inspect(db.file).problems, ['sameFile'], 'problems')
+  })
+
+  check('a database without the expected tables is rejected', () => {
+    const file = join(ROOT, 'partial.db')
+    const other = new Database(file)
+    other.exec('CREATE TABLE folders (id INTEGER PRIMARY KEY, path TEXT, name TEXT)')
+    other.close()
+
+    const inspection = restore.inspect(file)
+    assert(inspection.problems.includes('missingTables'), 'expected missingTables')
+    eq(inspection.missingTables, ['files', 'print_events', 'settings'], 'missing tables')
+  })
+
+  check('a snapshot from a newer build is refused', () => {
+    const file = join(ROOT, 'future.db')
+    copyFileSync(goodSnapshot.path, file)
+    const future = new Database(file)
+    future.exec('PRAGMA user_version = 99')
+    future.close()
+
+    const inspection = restore.inspect(file)
+    assert(inspection.problems.includes('newerSchema'), 'expected newerSchema')
+    eq(inspection.schemaVersion, 99, 'reported version')
+    eq(inspection.supportedVersion, 3, 'supported version')
+  })
+
+  check('a truncated database is reported as unreadable', () => {
+    const file = join(ROOT, 'truncated.db')
+    copyFileSync(goodSnapshot.path, file)
+    // Keep the header, drop every page after the first: SQLite still believes
+    // the file is a database, but its schema pointers now lead nowhere.
+    writeFileSync(file, readFileSync(file).subarray(0, 4096))
+
+    const inspection = restore.inspect(file)
+    assert(!inspection.ok, 'a truncated file must not be restorable')
+    assert(inspection.problems.length > 0, 'expected at least one problem')
+  })
+
+  check('restoring a rejected file changes nothing', () => {
+    // The whole point of checking first: a bad candidate must be refused
+    // before a single row is deleted.
+    const before = countAll()
+    let threw = false
+    try {
+      restore.restore(join(ROOT, 'not-a-db.db'))
+    } catch {
+      threw = true
+    }
+    assert(threw, 'expected the restore to refuse')
+    eq(countAll(), before, 'nothing was touched')
+  })
+
+  check('the candidate is detached after a failed check', () => {
+    // A still-attached candidate keeps a lock on the file, which on Windows
+    // would stop the user deleting or overwriting their own file.
+    const attached = db.all<{ name: string }>('PRAGMA database_list').map((row) => row.name)
+    eq(attached, ['main'], 'only the live database should be attached')
   })
 
   /* --------------------------------------------------------------- reset */

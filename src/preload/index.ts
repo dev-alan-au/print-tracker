@@ -16,6 +16,8 @@ import type {
   ResetOptions,
   ResetPreview,
   ResetReport,
+  RestoreInspection,
+  RestoreReport,
   SchemaTable,
   SpoolerStatus,
   ToastMessage,
@@ -88,7 +90,12 @@ const api: PrintTrackerApi = {
   app: {
     previewReset: () => ipcRenderer.invoke(IPC.app.previewReset) as Promise<ResetPreview>,
     reset: (options: ResetOptions) =>
-      ipcRenderer.invoke(IPC.app.reset, options) as Promise<ResetReport>
+      ipcRenderer.invoke(IPC.app.reset, options) as Promise<ResetReport>,
+    inspectBackup: (path: string) =>
+      ipcRenderer.invoke(IPC.app.inspectBackup, path) as Promise<RestoreInspection>,
+    restoreBackup: (path: string) =>
+      ipcRenderer.invoke(IPC.app.restoreBackup, path) as Promise<RestoreReport>,
+    pickBackupFile: () => ipcRenderer.invoke(IPC.app.pickBackupFile) as Promise<string | null>
   },
   events: {
     onFilesChanged: (callback: () => void) => subscribe<void>(IPC.events.filesChanged, callback),

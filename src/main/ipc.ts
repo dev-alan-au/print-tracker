@@ -166,6 +166,48 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     return report
   })
 
+  /* --------------------------------------------------------- restore app */
+
+  ipcMain.handle(IPC.app.inspectBackup, (_event, path: unknown) => {
+    if (typeof path !== 'string') throw new Error('A file path is required.')
+    return ctx.restore.inspect(path)
+  })
+
+  ipcMain.handle(IPC.app.pickBackupFile, async () => {
+    const window = getWindow()
+    const options: Electron.OpenDialogOptions = {
+      title: 'Choose a database snapshot',
+      buttonLabel: 'Check this file',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Print Tracker snapshots', extensions: ['db'] },
+        { name: 'All files', extensions: ['*'] }
+      ],
+      defaultPath: ctx.backups.directory
+    }
+
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options)
+
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle(IPC.app.restoreBackup, (_event, path: unknown) => {
+    if (typeof path !== 'string') throw new Error('A file path is required.')
+    const report = ctx.restoreBackup(path)
+
+    // Every panel holds counts that are now wrong. Deferred so this reply is
+    // delivered before the window goes away.
+    setTimeout(() => {
+      const window = getWindow()
+      if (window && !window.isDestroyed()) window.webContents.reload()
+    }, 400)
+
+    return report
+  })
+
   /* ------------------------------------------------------------ settings */
 
   ipcMain.handle(IPC.settings.get, () => ctx.settings.get())
