@@ -286,7 +286,7 @@ export const ko: Catalog = {
   'settings.reset.backupFirst': '되돌릴 수 있도록 먼저 백업 저장',
   'settings.reset.removeBackups': '기존 백업 {count}개도 함께 삭제',
   'settings.reset.confirmWord': '초기화',
-  'settings.reset.confirmLabel': '확인하려면 {word}을(를) 입력하세요',
+  'settings.reset.confirmLabel': '확인을 위해 {word} 입력',
   'settings.reset.confirm': '지금 초기화',
   'settings.reset.working': '초기화 중…',
 
