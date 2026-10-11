@@ -28,6 +28,7 @@ export const ko: Catalog = {
   /* --------------------------------------------------------------- common */
   'common.cancel': '취소',
   'common.close': '닫기',
+  'common.dragToResize': '끌어서 너비 조절, 두 번 클릭하면 초기화',
   'common.refresh': '새로 고침',
   'common.delete': '삭제',
   'common.open': '열기',

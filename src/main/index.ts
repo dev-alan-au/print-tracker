@@ -230,6 +230,74 @@ function createWindow(): void {
                 }
               }
 
+              // `PT_DEBUG_DRAG=<column index>,<pixels>` drags a column edge, so
+              // the resize behaviour can be checked rather than assumed.
+              const drag = process.env['PT_DEBUG_DRAG']
+              if (drag && tabs[index] === 'files') {
+                const [columnIndex, delta] = drag.split(',')
+                const result: unknown = await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const before = Array.from(
+                       document.querySelectorAll('thead th')
+                     ).map((node) => Math.round(node.getBoundingClientRect().width))
+
+                     const handle = document.querySelectorAll('.col-resize')[${Number(columnIndex)}]
+                     if (!handle) return { error: 'no handle at that index' }
+                     const box = handle.getBoundingClientRect()
+                     const x = box.left + box.width / 2
+                     const y = box.top + box.height / 2
+                     const send = (type, clientX) =>
+                       handle.dispatchEvent(
+                         new PointerEvent(type, {
+                           bubbles: true,
+                           cancelable: true,
+                           clientX,
+                           clientY: y,
+                           pointerId: 1,
+                           pointerType: 'mouse',
+                           isPrimary: true
+                         })
+                       )
+
+                     send('pointerdown', x)
+                     send('pointermove', x + ${Number(delta)})
+                     send('pointerup', x + ${Number(delta)})
+
+                     return { before }
+                   })()`
+                )
+                // Let the frame flush, then read the widths back.
+                await new Promise((resolve) => setTimeout(resolve, 500))
+                const after: unknown = await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const table = document.querySelector('table')
+                     const holder = document.querySelector('.panel-body.flush')
+                     const actions = document.querySelector('tbody td:last-child')
+                     const buttons = Array.from(
+                       document.querySelectorAll('tbody tr:first-child .cell-actions .btn')
+                     )
+                     return {
+                       widths: Array.from(document.querySelectorAll('thead th')).map((node) =>
+                         Math.round(node.getBoundingClientRect().width)
+                       ),
+                       tableWidth: table ? Math.round(table.getBoundingClientRect().width) : null,
+                       holderWidth: holder ? Math.round(holder.getBoundingClientRect().width) : null,
+                       actionsRight: actions ? Math.round(actions.getBoundingClientRect().right) : null,
+                       holderRight: holder ? Math.round(holder.getBoundingClientRect().right) : null,
+                       buttonsInFirstRow: buttons.length,
+                       lastButtonRight: buttons.length
+                         ? Math.round(buttons[buttons.length - 1].getBoundingClientRect().right)
+                         : null,
+                       scrollable: holder ? holder.scrollWidth > holder.clientWidth : null,
+                       overflowBy: holder ? holder.scrollWidth - holder.clientWidth : null,
+                       stored: window.localStorage.getItem('print-tracker.columns.files')
+                     }
+                   })()`
+                )
+                console.log('[pt-debug] drag before:', JSON.stringify(result))
+                console.log('[pt-debug] drag after:', JSON.stringify(after))
+              }
+
               // `PT_DEBUG_FILTER=<option value>` selects a folder or subfolder
               // in the folder filter, so the narrowed list can be seen.
               const filterValue = process.env['PT_DEBUG_FILTER']

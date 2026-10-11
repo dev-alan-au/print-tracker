@@ -9,9 +9,30 @@ import type {
 } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
+import { useColumnWidths } from '../lib/useColumnWidths'
 import ManualPrintDialog from './ManualPrintDialog'
 import PageHelp from './PageHelp'
 import PrintDialog from './PrintDialog'
+import { ResizableTh } from './ResizableTable'
+
+/**
+ * Table columns, in order. `pick` is the row checkbox and stays a fixed sliver.
+ * Widths are only a starting point for the ones that carry a default - until the
+ * user drags an edge the table sizes its own columns.
+ */
+const FILE_COLUMNS: { key: string; defaultWidth?: number }[] = [
+  { key: 'pick', defaultWidth: 34 },
+  { key: 'file' },
+  { key: 'folder' },
+  { key: 'size' },
+  { key: 'modified' },
+  { key: 'prints' },
+  { key: 'lastPrinted' },
+  { key: 'actions' }
+]
+
+/** Stable identity: the hook measures these in header order. */
+const FILE_COLUMN_KEYS = FILE_COLUMNS.map((column) => column.key)
 
 export default function FilesPanel({
   refreshToken,
@@ -42,6 +63,11 @@ export default function FilesPanel({
   const [manualFor, setManualFor] = useState<TrackedFile | null>(null)
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set())
   const [printOpen, setPrintOpen] = useState(false)
+  const columns = useColumnWidths('files', FILE_COLUMN_KEYS)
+  // Auto layout while the table is in charge, fixed once the user has taken
+  // over: fixed layout is what makes a dragged width stick, and forcing it from
+  // the start would replace sensible content sizing with equal columns.
+  const hasWidths = Object.keys(columns.widths).length > 0
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 250)
@@ -250,7 +276,21 @@ export default function FilesPanel({
           </div>
         ) : (
           <div className="panel-body flush">
-            <table>
+            <table className={hasWidths ? 'fixed-layout' : undefined}>
+              <colgroup>
+                {FILE_COLUMNS.map((column) => (
+                  <col
+                    key={column.key}
+                    style={
+                      columns.widths[column.key] !== undefined
+                        ? { width: columns.widths[column.key] }
+                        : column.defaultWidth !== undefined
+                          ? { width: column.defaultWidth }
+                          : undefined
+                    }
+                  />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
                   <th className="pick">
@@ -266,13 +306,25 @@ export default function FilesPanel({
                       }
                     />
                   </th>
-                  <th>{t('files.table.file')}</th>
-                  <th>{t('files.table.folder')}</th>
-                  <th className="num">{t('files.table.size')}</th>
-                  <th>{t('files.table.modified')}</th>
-                  <th className="num">{t('files.table.prints')}</th>
-                  <th>{t('files.table.lastPrinted')}</th>
-                  <th />
+                  <ResizableTh columnKey="file" columns={columns} minimum={160}>
+                    {t('files.table.file')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="folder" columns={columns} minimum={90}>
+                    {t('files.table.folder')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="size" columns={columns} className="num" minimum={70}>
+                    {t('files.table.size')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="modified" columns={columns} minimum={110}>
+                    {t('files.table.modified')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="prints" columns={columns} className="num" minimum={70}>
+                    {t('files.table.prints')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="lastPrinted" columns={columns} minimum={100}>
+                    {t('files.table.lastPrinted')}
+                  </ResizableTh>
+                  <ResizableTh columnKey="actions" columns={columns} minimum={200} />
                 </tr>
               </thead>
               <tbody>

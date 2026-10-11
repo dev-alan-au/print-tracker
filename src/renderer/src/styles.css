@@ -387,6 +387,14 @@ code {
   border-bottom: 1px solid var(--border);
 }
 
+/* Resizing a column can make the table wider than its panel, and the row
+   actions live in the last column. The panel clips its overflow, so without a
+   scroll container those buttons would be unreachable rather than merely off
+   to one side. */
+.panel-body.flush {
+  overflow-x: auto;
+}
+
 /* Appears between the panel head and the table once anything is ticked. */
 .selection-bar {
   display: flex;
@@ -563,6 +571,58 @@ td.num,
 th.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------- resizable table columns */
+
+/* Fixed layout is what makes a dragged width authoritative. Applied only once
+   the user has resized something, so the default is still content-sized. */
+table.fixed-layout {
+  table-layout: fixed;
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Right-aligned headers put the handle on the left, where the column starts. */
+th.num .th-content {
+  flex-direction: row-reverse;
+}
+
+.th-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The grab target. Wider than it looks, and it reaches past the cell padding so
+   the edge is easy to hit the way a desktop table edge should be. */
+.col-resize {
+  flex: none;
+  width: 9px;
+  align-self: stretch;
+  margin: -9px -15px -9px 0;
+  cursor: col-resize;
+  position: relative;
+  touch-action: none;
+}
+
+th.num .col-resize {
+  margin: -9px 0 -9px -15px;
+}
+
+.col-resize::after {
+  content: '';
+  position: absolute;
+  inset: 5px 4px;
+  border-left: 2px solid transparent;
+}
+
+.col-resize:hover::after,
+.col-resize:active::after {
+  border-left-color: var(--accent);
 }
 
 .cell-main {

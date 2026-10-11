@@ -25,6 +25,7 @@ export const en = {
   /* --------------------------------------------------------------- common */
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.dragToResize': 'Drag to resize, double-click to reset',
   'common.refresh': 'Refresh',
   'common.delete': 'Delete',
   'common.open': 'Open',
