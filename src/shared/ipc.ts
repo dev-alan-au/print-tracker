@@ -16,6 +16,7 @@ export const IPC = {
     reveal: 'files:reveal',
     remove: 'files:remove',
     markPrinted: 'files:mark-printed',
+    setNotes: 'files:set-notes',
     directories: 'files:directories',
     print: 'files:print',
     method: 'files:print-method',

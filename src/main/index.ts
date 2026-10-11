@@ -298,6 +298,36 @@ function createWindow(): void {
                 console.log('[pt-debug] drag after:', JSON.stringify(after))
               }
 
+              // `PT_DEBUG_NOTES=open` opens the note dialog for the first row;
+              // `=apply` also writes a note, so the row marker can be seen.
+              const notesMode = process.env['PT_DEBUG_NOTES']
+              if (notesMode && tabs[index] === 'files') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelector('tbody tr .cell-actions .btn')?.click()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 700))
+
+                if (notesMode === 'apply') {
+                  await mainWindow?.webContents.executeJavaScript(
+                    `(() => {
+                       const box = document.querySelector('#file-notes')
+                       if (!box) return 'missing'
+                       const setter = Object.getOwnPropertyDescriptor(
+                         window.HTMLTextAreaElement.prototype, 'value'
+                       ).set
+                       setter.call(box, 'Chase accounts for the Q3 reprint before Friday.')
+                       box.dispatchEvent(new Event('input', { bubbles: true }))
+                       return box.value.length
+                     })()`
+                  )
+                  await new Promise((resolve) => setTimeout(resolve, 300))
+                  await mainWindow?.webContents.executeJavaScript(
+                    `document.querySelector('.modal-foot .btn.primary')?.click()`
+                  )
+                  await new Promise((resolve) => setTimeout(resolve, 1400))
+                }
+              }
+
               // `PT_DEBUG_FILTER=<option value>` selects a folder or subfolder
               // in the folder filter, so the narrowed list can be seen.
               const filterValue = process.env['PT_DEBUG_FILTER']

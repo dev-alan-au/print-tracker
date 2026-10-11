@@ -78,7 +78,6 @@ A file in an output folder is only counted once it has stopped changing for
 duplicate prints.
 
 ### Filtering by folder and subfolder
-
 The **Files** screen's folder filter offers each tracked folder under its own
 group, with the subfolders inside it:
 
@@ -104,6 +103,25 @@ Two details worth knowing:
   separator is the same character as `LIKE`'s escape, which makes a pattern for
   a Windows path a trap, and a directory named `nestedish` must not be swept in
   by a filter for `nested`.
+
+### Notes on a file
+
+**Files → Notes** on any row, up to 255 characters. The counter beside the box
+shows how much of the budget is used, and a dot in the list marks the rows that
+carry one.
+
+Two things it deliberately is not:
+
+- It is not `print_events.note`, which belongs to a single print. This note
+  belongs to the *file*, so it survives being reprinted and is not duplicated
+  across a file's history.
+- It is not lost on rescan. `FileService.upsertFromDisk` refreshes the columns
+  that come from the filesystem and leaves `notes` alone.
+
+The cap is enforced in the main process, not only by the textarea's `maxLength`:
+the renderer is not the only way to reach the IPC channel, and a silently
+truncated note would be worse than a refused one. Whitespace-only input clears
+the note rather than storing blanks.
 
 ## Requirements
 

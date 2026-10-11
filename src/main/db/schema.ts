@@ -5,7 +5,7 @@
  * Never edit an existing entry once it has shipped - append a new one instead.
  */
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export const MIGRATIONS: readonly string[] = [
   /* v0 -> v1 : initial schema */
@@ -80,5 +80,13 @@ export const MIGRATIONS: readonly string[] = [
   `
   CREATE INDEX IF NOT EXISTS idx_files_last_printed
     ON files(last_printed_at DESC);
+  `,
+
+  /* v3 -> v4 : a short free-text note per file.
+     Distinct from `print_events.note`, which belongs to one print; this belongs
+     to the file and survives it being reprinted. A single column added, so an
+     older snapshot restores cleanly with the notes simply absent. */
+  `
+  ALTER TABLE files ADD COLUMN notes TEXT;
   `
 ]

@@ -11,6 +11,7 @@ import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import { useColumnWidths } from '../lib/useColumnWidths'
 import ManualPrintDialog from './ManualPrintDialog'
+import NotesDialog from './NotesDialog'
 import PageHelp from './PageHelp'
 import PrintDialog from './PrintDialog'
 import { ResizableTh } from './ResizableTable'
@@ -61,6 +62,7 @@ export default function FilesPanel({
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc')
 
   const [manualFor, setManualFor] = useState<TrackedFile | null>(null)
+  const [notesFor, setNotesFor] = useState<TrackedFile | null>(null)
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set())
   const [printOpen, setPrintOpen] = useState(false)
   const columns = useColumnWidths('files', FILE_COLUMN_KEYS)
@@ -341,6 +343,9 @@ export default function FilesPanel({
                     <td>
                       <div className="cell-main">
                         {file.name}
+                        {file.notes ? (
+                          <span className="note-dot" title={t('files.notes.hasNote')} />
+                        ) : null}
                         {file.present ? null : (
                           <>
                             {' '}
@@ -354,6 +359,7 @@ export default function FilesPanel({
                       <div className="cell-sub" title={file.path}>
                         {file.relativePath}
                       </div>
+                      {file.notes ? <div className="cell-sub notes-line">{file.notes}</div> : null}
                     </td>
                     <td className="cell-sub">{file.folderName ?? t('common.emptyValue')}</td>
                     <td className="num">{formatBytes(file.size, locale)}</td>
@@ -368,6 +374,13 @@ export default function FilesPanel({
                     <td className="cell-sub">{formatRelative(file.lastPrintedAt, locale)}</td>
                     <td>
                       <div className="cell-actions">
+                        <button
+                          type="button"
+                          className="btn tiny"
+                          onClick={() => setNotesFor(file)}
+                        >
+                          {t('files.notes')}
+                        </button>
                         <button
                           type="button"
                           className="btn tiny"
@@ -413,6 +426,18 @@ export default function FilesPanel({
           onClose={() => setManualFor(null)}
           onSaved={() => {
             setManualFor(null)
+            onChanged()
+          }}
+          onToast={onToast}
+        />
+      ) : null}
+
+      {notesFor ? (
+        <NotesDialog
+          file={notesFor}
+          onClose={() => setNotesFor(null)}
+          onSaved={() => {
+            setNotesFor(null)
             onChanged()
           }}
           onToast={onToast}

@@ -9,6 +9,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { join, sep } from 'node:path'
 import { Database } from 'node-sqlite3-wasm'
 import { Db } from '../src/main/db/database'
+import { FILE_NOTES_MAX_LENGTH } from '../src/shared/types'
 import { BackupService } from '../src/main/services/backups'
 import { FileService } from '../src/main/services/files'
 import { FolderService } from '../src/main/services/folders'
@@ -451,6 +452,54 @@ async function main(): Promise<void> {
     }
   })
 
+  /* ---------------------------------------------------------- file notes */
+
+  check('a file has no note until one is written', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    eq(file.notes, null, 'no note to begin with')
+  })
+
+  check('a note is stored and comes back on the file', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const updated = files.setNotes(file.id, '  Approved for archive  ')
+    // Trimmed, because leading and trailing whitespace is never intentional in
+    // a one-line admin note.
+    eq(updated.notes, 'Approved for archive', 'stored trimmed')
+    eq(files.get(file.id)?.notes, 'Approved for archive', 'and read back')
+  })
+
+  check('a note longer than the limit is cut, not rejected', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const updated = files.setNotes(file.id, 'x'.repeat(400))
+    eq(updated.notes?.length, FILE_NOTES_MAX_LENGTH, 'truncated to the limit')
+  })
+
+  check('a blank note clears it rather than storing whitespace', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const updated = files.setNotes(file.id, '   ')
+    eq(updated.notes, null, 'cleared')
+  })
+
+  check('writing a note needs the file to exist', () => {
+    let threw = false
+    try {
+      files.setNotes(999_999, 'orphan')
+    } catch {
+      threw = true
+    }
+    assert(threw, 'expected a refusal for an unknown file')
+  })
+
+  check('notes survive a rescan of the folder', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    files.setNotes(file.id, 'keep me')
+    files.scanFolder(folders.get(file.folderId)!)
+    // The upsert updates the filesystem-derived columns; the note is not one of
+    // them, and losing it on every scan would make the feature useless.
+    eq(files.get(file.id)?.notes, 'keep me', 'note intact after a scan')
+    files.setNotes(file.id, '')
+  })
+
   /* ------------------------------------------------------------- backups */
 
   const backups = new BackupService(db, join(ROOT, 'backups'))
@@ -463,7 +512,7 @@ async function main(): Promise<void> {
     const copy = new Database(entry.path, { readOnly: true })
     eq(Number(copy.get('SELECT COUNT(*) AS c FROM folders').c), 1, 'folders in the backup')
     eq(Number(copy.get('SELECT COUNT(*) AS c FROM print_events').c), 1, 'events in the backup')
-    eq(Number(copy.get('PRAGMA user_version').user_version), 3, 'schema version in the backup')
+    eq(Number(copy.get('PRAGMA user_version').user_version), 4, 'schema version in the backup')
     copy.close()
   })
 
@@ -552,8 +601,8 @@ async function main(): Promise<void> {
     eq(inspection.problems, [], 'problems')
     assert(inspection.ok, 'expected the snapshot to be restorable')
     eq(inspection.counts, goodCounts, 'reported counts')
-    eq(inspection.schemaVersion, 3, 'schema version of the candidate')
-    eq(inspection.supportedVersion, 3, 'schema version this build supports')
+    eq(inspection.schemaVersion, 4, 'schema version of the candidate')
+    eq(inspection.supportedVersion, 4, 'schema version this build supports')
     assert(inspection.sizeBytes > 0, 'size')
   })
 
@@ -677,7 +726,7 @@ async function main(): Promise<void> {
     const inspection = restore.inspect(file)
     assert(inspection.problems.includes('newerSchema'), 'expected newerSchema')
     eq(inspection.schemaVersion, 99, 'reported version')
-    eq(inspection.supportedVersion, 3, 'supported version')
+    eq(inspection.supportedVersion, 4, 'supported version')
   })
 
   check('a truncated database is reported as unreadable', () => {
@@ -1014,7 +1063,7 @@ async function main(): Promise<void> {
   check('reset keeps the schema, so no migration is replayed', () => {
     // Rows are deleted rather than the file removed, so user_version and the
     // indexes must survive untouched.
-    eq(Number(db.get('PRAGMA user_version')?.user_version ?? 0), 3, 'schema version')
+    eq(Number(db.get('PRAGMA user_version')?.user_version ?? 0), 4, 'schema version')
     const index = db.get<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_files_last_printed'"
     )

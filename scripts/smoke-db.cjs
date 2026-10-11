@@ -45,6 +45,10 @@ const v3Match = schemaSource.match(/\/\* v2 -> v3 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
 assert(v3Match, 'could not extract the v2 -> v3 migration from schema.ts')
 const SCHEMA_V3_SQL = v3Match[1]
 
+const v4Match = schemaSource.match(/\/\* v3 -> v4 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
+assert(v4Match, 'could not extract the v3 -> v4 migration from schema.ts')
+const SCHEMA_V4_SQL = v4Match[1]
+
 const dbPath = join(ROOT, 'print-tracker.db')
 const db = new Database(dbPath)
 
@@ -277,6 +281,15 @@ check('migrations upgrade an existing database in order', () => {
   const indexes = upgraded.all("SELECT name FROM sqlite_master WHERE type='index'").map((r) => r.name)
   assert(indexes.includes('idx_files_last_printed'), 'expected the last-printed index')
   assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 3, 'now at v3')
+
+  upgraded.exec('BEGIN')
+  upgraded.exec(SCHEMA_V4_SQL)
+  upgraded.exec('PRAGMA user_version = 4')
+  upgraded.exec('COMMIT')
+
+  const fileColumns = upgraded.all('PRAGMA table_info(files)').map((r) => r.name)
+  assert(fileColumns.includes('notes'), 'expected the notes column after v4')
+  assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 4, 'now at v4')
 
   upgraded.close()
 })

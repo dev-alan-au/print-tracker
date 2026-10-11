@@ -95,6 +95,11 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     ctx.files.remove(asId(id))
   })
 
+  ipcMain.handle(IPC.files.setNotes, (_event, id: unknown, notes: unknown) => {
+    if (typeof notes !== 'string') throw new Error('A note is required.')
+    return ctx.files.setNotes(asId(id), notes)
+  })
+
   ipcMain.handle(IPC.files.directories, (_event, folderId: unknown) => {
     // Null rather than a missing argument means "every folder".
     if (folderId === null || folderId === undefined) return ctx.files.directories()

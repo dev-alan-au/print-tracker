@@ -60,6 +60,8 @@ const api: PrintTrackerApi = {
     remove: (id: number) => ipcRenderer.invoke(IPC.files.remove, id) as Promise<void>,
     markPrinted: (input: ManualPrintInput) =>
       ipcRenderer.invoke(IPC.files.markPrinted, input) as Promise<PrintEvent>,
+    setNotes: (id: number, notes: string) =>
+      ipcRenderer.invoke(IPC.files.setNotes, id, notes) as Promise<TrackedFile>,
     directories: (folderId?: number | null) =>
       ipcRenderer.invoke(IPC.files.directories, folderId ?? null) as Promise<FolderDirectory[]>,
     print: (input: PrintRequestInput) =>

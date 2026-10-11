@@ -25,6 +25,7 @@ export const en = {
   /* --------------------------------------------------------------- common */
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.save': 'Save',
   'common.dragToResize': 'Drag to resize, double-click to reset',
   'common.refresh': 'Refresh',
   'common.delete': 'Delete',
@@ -221,6 +222,14 @@ export const en = {
 
   'files.badge.missing': 'missing',
   'files.markPrinted': 'Mark printed',
+  'files.notes': 'Notes',
+  'files.notes.title': 'Notes about this file',
+  'files.notes.label': 'Note',
+  'files.notes.placeholder': 'Anything worth remembering about this file…',
+  'files.notes.counter': '{used} / {max} characters',
+  'files.notes.saved': 'Note saved for "{name}".',
+  'files.notes.cleared': 'Note cleared for "{name}".',
+  'files.notes.hasNote': 'This file has a note',
   'files.confirmRemove':
     'Remove "{name}" from the index?\n\nThe file on disk is not touched. Recorded print history is kept.',
   'files.toast.removed': 'Removed "{name}" from the index.',

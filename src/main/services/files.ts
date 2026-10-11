@@ -1,6 +1,7 @@
 import { readdirSync, statSync } from 'node:fs'
 import type { Stats } from 'node:fs'
 import { basename, dirname, extname, join, relative, sep } from 'node:path'
+import { FILE_NOTES_MAX_LENGTH } from '@shared/types'
 import type { FileQuery, FolderDirectory, Page, TrackedFile } from '@shared/types'
 import type { Db } from '../db/database'
 import { nowIso } from '../util/time'
@@ -21,6 +22,7 @@ interface FileRow {
   lastSeenAt: string
   printedCount: number
   lastPrintedAt: string | null
+  notes: string | null
 }
 
 /**
@@ -47,7 +49,8 @@ const SELECT_FILE = `
          fi.first_seen_at   AS firstSeenAt,
          fi.last_seen_at    AS lastSeenAt,
          fi.printed_count   AS printedCount,
-         fi.last_printed_at AS lastPrintedAt
+         fi.last_printed_at AS lastPrintedAt,
+         fi.notes           AS notes
   ${FROM_FILES}
 `
 
@@ -66,7 +69,8 @@ function mapFile(row: FileRow): TrackedFile {
     firstSeenAt: row.firstSeenAt,
     lastSeenAt: row.lastSeenAt,
     printedCount: Number(row.printedCount ?? 0),
-    lastPrintedAt: row.lastPrintedAt
+    lastPrintedAt: row.lastPrintedAt,
+    notes: row.notes
   }
 }
 
@@ -173,6 +177,21 @@ export class FileService {
 
   remove(id: number): void {
     this.db.run('DELETE FROM files WHERE id = ?', [id])
+  }
+
+  /**
+   * Stores the note on a file. An empty note clears it rather than storing a
+   * blank string, so "has a note" and "has whitespace" stay the same question.
+   * The length is enforced here and not only in the textarea, because the
+   * renderer is not the only way in.
+   */
+  setNotes(id: number, notes: string): TrackedFile {
+    const trimmed = notes.trim().slice(0, FILE_NOTES_MAX_LENGTH)
+    const existing = this.get(id)
+    if (!existing) throw new Error('File not found.')
+
+    this.db.run('UPDATE files SET notes = ? WHERE id = ?', [trimmed || null, id])
+    return this.get(id)!
   }
 
   /**

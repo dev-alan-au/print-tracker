@@ -79,6 +79,11 @@ export interface TrackedFile {
   lastSeenAt: string
   printedCount: number
   lastPrintedAt: string | null
+  /**
+   * Short free-text note about the file itself, or null. Capped at
+   * `FILE_NOTES_MAX_LENGTH` characters.
+   */
+  notes: string | null
 }
 
 export interface FileQuery {
@@ -96,6 +101,10 @@ export interface FileQuery {
   limit?: number
   offset?: number
 }
+
+/** Longest note a file may carry. Enforced in the main process, not only in the
+ *  input, so a crafted IPC call cannot store something longer. */
+export const FILE_NOTES_MAX_LENGTH = 255
 
 /* ---------------------------------------------------------------- printing */
 
@@ -414,6 +423,7 @@ export interface PrintTrackerApi {
     reveal(id: number): Promise<void>
     remove(id: number): Promise<void>
     markPrinted(input: ManualPrintInput): Promise<PrintEvent>
+    setNotes(id: number, notes: string): Promise<TrackedFile>
     directories(folderId?: number | null): Promise<FolderDirectory[]>
     print(input: PrintRequestInput): Promise<PrintReport>
     method(): Promise<PrintMethod>

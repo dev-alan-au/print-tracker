@@ -28,6 +28,7 @@ export const ko: Catalog = {
   /* --------------------------------------------------------------- common */
   'common.cancel': '취소',
   'common.close': '닫기',
+  'common.save': '저장',
   'common.dragToResize': '끌어서 너비 조절, 두 번 클릭하면 초기화',
   'common.refresh': '새로 고침',
   'common.delete': '삭제',
@@ -224,6 +225,14 @@ export const ko: Catalog = {
 
   'files.badge.missing': '없음',
   'files.markPrinted': '인쇄로 표시',
+  'files.notes': '메모',
+  'files.notes.title': '이 파일에 대한 메모',
+  'files.notes.label': '메모',
+  'files.notes.placeholder': '이 파일에 대해 기억해 둘 내용을 적으세요…',
+  'files.notes.counter': '{used} / {max}자',
+  'files.notes.saved': '"{name}" 메모를 저장했습니다.',
+  'files.notes.cleared': '"{name}" 메모를 지웠습니다.',
+  'files.notes.hasNote': '메모가 있는 파일',
   'files.confirmRemove':
     '"{name}"을(를) 색인에서 제거할까요?\n\n디스크의 파일은 변경되지 않습니다. 기록된 인쇄 내역은 유지됩니다.',
   'files.toast.removed': '"{name}"을(를) 색인에서 제거했습니다.',
