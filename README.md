@@ -92,16 +92,48 @@ Print Tracker detects whether the log is enabled and tells you in
 
 ## Building for Windows
 
-Run `npm run build:win` on Windows for the smoothest result. Building from Linux
-works but electron-builder needs **Wine** to stamp the executable's version
-information; install it or build in CI.
+`npm run build:win` produces two artifacts in `release/`:
 
-The output lands in `release/` as an NSIS installer, configured in
-`electron-builder.yml` (per-user install, changeable install directory, desktop
-shortcut).
+| File                                     | What it is                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `print-tracker-<version>-setup.exe`      | NSIS installer - per-user, changeable install directory, desktop and Start menu links |
+| `print-tracker-<version>-portable.exe`   | Single file that runs with no installation step                                       |
+
+Both are configured in `electron-builder.yml`.
+
+Building locally from Linux works, but electron-builder needs **Wine** to stamp
+the executable's version information - **CI is the easier path**.
 
 Because the SQLite driver is pure WebAssembly, the same `node_modules` produce a
-correct Windows build without any cross-compilation of native code.
+correct Windows build with no cross-compilation of native code.
+
+### Getting a downloadable exe from GitHub
+
+`.github/workflows/windows-build.yml` runs three jobs:
+
+| Job       | When                                    | Result                                                        |
+| --------- | --------------------------------------- | ------------------------------------------------------------- |
+| `verify`  | every push and pull request             | typecheck plus all three test suites                          |
+| `windows` | push to `main`, tags, manual runs       | builds both exes, uploads them as a workflow artifact          |
+| `release` | tags matching `v*`                      | attaches the exes to a GitHub Release                          |
+
+There are two ways to get the exe:
+
+1. **Ad hoc** - open the **Actions** tab, pick *Windows build*, press
+   **Run workflow**, then download `print-tracker-windows` from the Artifacts
+   section of that run.
+2. **Versioned release** - tag a commit and push it:
+
+   ```bash
+   npm version patch        # bumps package.json and creates the tag
+   git push --follow-tags
+   ```
+
+   Both exes then appear under **Releases**, which is the link to hand to users.
+
+Pull requests only run `verify`: Windows runners are billed at a higher rate and
+a PR does not need an installer. No repository secrets are required - the release
+job uses the automatically provided `GITHUB_TOKEN`.
 
 ## Languages
 

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Desktop app that indexes files inside watched folders and tracks when they are printed.",
+  "author": "Alan Lai <dev.alan.au@gmail.com>",
   "main": "./out/main/index.js",
   "license": "MIT",
   "scripts": {

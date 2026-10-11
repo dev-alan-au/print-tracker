@@ -22,17 +22,26 @@ asarUnpack:
 win:
   executableName: print-tracker
   target:
+    # An installer (with the usual shortcuts), plus a single-file build that
+    # runs straight from the download with no installation step.
     - target: nsis
+      arch:
+        - x64
+    - target: portable
       arch:
         - x64
 
 nsis:
+  artifactName: ${name}-${version}-setup.${ext}
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Print Tracker
+
+portable:
+  artifactName: ${name}-${version}-portable.${ext}
 
 linux:
   target:
