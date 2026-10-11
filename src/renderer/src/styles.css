@@ -1,11 +1,13 @@
 /* Light is the default scheme. Dark overrides the same tokens below. */
 :root {
-  --bg: #f4f5f8;
+  /* The page grey sits behind white panels, so how dark it is decides how much
+     the panels stand out. Kept a clear step deeper than a token grey. */
+  --bg: #e6e9f0;
   --bg-panel: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-hover: #eceef3;
-  --border: #e2e5ea;
-  --border-strong: #ccd2db;
+  --bg-hover: #dfe3ec;
+  --border: #d3d8e2;
+  --border-strong: #b9c0cd;
   --text: #1a1e26;
   --text-dim: #5a6372;
   --text-faint: #838c9c;
@@ -19,11 +21,11 @@
   --source-spooler: #0a7cb8;
   --source-manual: #a86300;
   --source-app: #0f9d63;
-  --row-hover: rgba(15, 23, 42, 0.035);
-  --table-head-bg: rgba(15, 23, 42, 0.026);
-  --code-bg: rgba(15, 23, 42, 0.06);
-  --chart-empty: #dde1e8;
-  --scroll-thumb: #c4cad4;
+  --row-hover: rgba(15, 23, 42, 0.05);
+  --table-head-bg: rgba(15, 23, 42, 0.04);
+  --code-bg: rgba(15, 23, 42, 0.07);
+  --chart-empty: #d2d8e2;
+  --scroll-thumb: #b6bec9;
   --scroll-thumb-hover: #a9b1bd;
   --backdrop: rgba(20, 25, 35, 0.45);
   --radius: 8px;
