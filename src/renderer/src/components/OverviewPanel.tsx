@@ -21,17 +21,29 @@ export default function OverviewPanel({
   const [notPrinted, setNotPrinted] = useState<Page<TrackedFile>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
 
+  // Search here is the same query the Files screen uses, so it also matches a
+  // file's folder name and path - typing a folder narrows both lists to it.
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 250)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [printedPage, unprintedPage] = await Promise.all([
         window.api.files.list({
+          search: debouncedSearch,
           printed: 'printed',
           sort: 'lastPrinted',
           direction: 'desc',
           limit: LIST_LIMIT
         }),
         window.api.files.list({
+          search: debouncedSearch,
           printed: 'unprinted',
           sort: 'name',
           direction: 'asc',
@@ -45,13 +57,14 @@ export default function OverviewPanel({
     } finally {
       setLoading(false)
     }
-  }, [onToast, refreshToken])
+  }, [debouncedSearch, onToast, refreshToken])
 
   useEffect(() => {
     void load()
   }, [load])
 
   const total = printed.total + notPrinted.total
+  const term = debouncedSearch.trim()
 
   return (
     <>
@@ -62,9 +75,17 @@ export default function OverviewPanel({
             {loading
               ? t('overview.loading')
               : t('overview.summary', { printed: printed.total, total })}
+            {term ? ` · ${t('overview.filtered', { term })}` : ''}
           </p>
         </div>
         <div className="row">
+          <input
+            className="search"
+            type="search"
+            placeholder={t('overview.searchPlaceholder')}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
           <button type="button" className="btn" onClick={() => void load()}>
             {t('common.refresh')}
           </button>
@@ -79,7 +100,9 @@ export default function OverviewPanel({
             <span className="badge output">{printed.total}</span>
           </div>
           {printed.items.length === 0 ? (
-            <div className="empty">{t('overview.printed.empty')}</div>
+            <div className="empty">
+              {term ? t('overview.search.noMatch', { term }) : t('overview.printed.empty')}
+            </div>
           ) : (
             <div className="list list-scroll">
               {printed.items.map((file) => (
@@ -109,7 +132,9 @@ export default function OverviewPanel({
             <span className="badge neutral">{notPrinted.total}</span>
           </div>
           {notPrinted.items.length === 0 ? (
-            <div className="empty">{t('overview.notPrinted.empty')}</div>
+            <div className="empty">
+              {term ? t('overview.search.noMatch', { term }) : t('overview.notPrinted.empty')}
+            </div>
           ) : (
             <div className="list list-scroll">
               {notPrinted.items.map((file) => (

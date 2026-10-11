@@ -30,6 +30,16 @@ interface EventRow {
   createdAt: string
 }
 
+/**
+ * Shared row source. The search filter can reference `fo.*`, so the pagination
+ * COUNT has to use exactly the same joins.
+ */
+const FROM_EVENT = `
+  FROM print_events p
+  LEFT JOIN files fi   ON fi.id = p.file_id
+  LEFT JOIN folders fo ON fo.id = fi.folder_id
+`
+
 const SELECT_EVENT = `
   SELECT p.id,
          p.file_id       AS fileId,
@@ -47,8 +57,7 @@ const SELECT_EVENT = `
          p.note_params   AS noteParams,
          p.printed_at    AS printedAt,
          p.created_at    AS createdAt
-  FROM print_events p
-  LEFT JOIN files fi ON fi.id = p.file_id
+  ${FROM_EVENT}
 `
 
 const SOURCES: PrintSource[] = ['watcher', 'spooler', 'manual']
@@ -275,10 +284,12 @@ export class PrintService {
         `(COALESCE(p.document_name, '') LIKE ? ESCAPE '\\'
           OR COALESCE(fi.name, '') LIKE ? ESCAPE '\\'
           OR COALESCE(p.printer, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(p.note, '') LIKE ? ESCAPE '\\')`
+          OR COALESCE(p.note, '') LIKE ? ESCAPE '\\'
+          OR COALESCE(fo.name, '') LIKE ? ESCAPE '\\'
+          OR COALESCE(fo.path, '') LIKE ? ESCAPE '\\')`
       )
       const pattern = likePattern(query.search.trim())
-      params.push(pattern, pattern, pattern, pattern)
+      params.push(pattern, pattern, pattern, pattern, pattern, pattern)
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
@@ -286,7 +297,7 @@ export class PrintService {
     const offset = Math.max(query.offset ?? 0, 0)
 
     const totalRow = this.db.get<{ c: number }>(
-      `SELECT COUNT(*) AS c FROM print_events p LEFT JOIN files fi ON fi.id = p.file_id ${whereSql}`,
+      `SELECT COUNT(*) AS c ${FROM_EVENT} ${whereSql}`,
       params
     )
 

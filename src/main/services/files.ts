@@ -22,6 +22,16 @@ interface FileRow {
   lastPrintedAt: string | null
 }
 
+/**
+ * Shared row source. Kept in one place because the WHERE clause can reference
+ * `fo.*` (folder search), so every query that embeds it - including the COUNT
+ * for pagination - must carry the same join.
+ */
+const FROM_FILES = `
+  FROM files fi
+  LEFT JOIN folders fo ON fo.id = fi.folder_id
+`
+
 const SELECT_FILE = `
   SELECT fi.id,
          fi.folder_id       AS folderId,
@@ -36,8 +46,7 @@ const SELECT_FILE = `
          fi.last_seen_at    AS lastSeenAt,
          fi.printed_count   AS printedCount,
          fi.last_printed_at AS lastPrintedAt
-  FROM files fi
-  LEFT JOIN folders fo ON fo.id = fi.folder_id
+  ${FROM_FILES}
 `
 
 function mapFile(row: FileRow): TrackedFile {
@@ -213,9 +222,17 @@ export class FileService {
       params.push(query.folderId)
     }
     if (query.search && query.search.trim()) {
-      where.push(`(fi.name LIKE ? ESCAPE '\\' OR fi.path LIKE ? ESCAPE '\\')`)
+      // The folder's display name and on-disk path are searched alongside the
+      // file itself, so typing a folder name ("Client Reports") finds every
+      // file inside it even when the path on disk looks nothing like the name.
+      where.push(
+        `(fi.name LIKE ? ESCAPE '\\'
+          OR fi.path LIKE ? ESCAPE '\\'
+          OR COALESCE(fo.name, '') LIKE ? ESCAPE '\\'
+          OR COALESCE(fo.path, '') LIKE ? ESCAPE '\\')`
+      )
       const pattern = likePattern(query.search.trim())
-      params.push(pattern, pattern)
+      params.push(pattern, pattern, pattern, pattern)
     }
     if (query.printed === 'printed') {
       where.push('fi.printed_count > 0')
@@ -239,7 +256,7 @@ export class FileService {
     const offset = Math.max(query.offset ?? 0, 0)
 
     const totalRow = this.db.get<{ c: number }>(
-      `SELECT COUNT(*) AS c FROM files fi ${whereSql}`,
+      `SELECT COUNT(*) AS c ${FROM_FILES} ${whereSql}`,
       params
     )
 

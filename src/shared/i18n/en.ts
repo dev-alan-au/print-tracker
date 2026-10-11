@@ -87,6 +87,9 @@ export const en = {
   'overview.notPrinted.empty': 'Every tracked file has been printed.',
   'overview.summary': '{printed} of {total} files printed',
   'overview.loading': 'Loading overview…',
+  'overview.searchPlaceholder': 'Search files or folders…',
+  'overview.filtered': 'Filtered by “{term}”',
+  'overview.search.noMatch': 'No files match “{term}”.',
 
   /* -------------------------------------------------------------- folders */
   'folders.title': 'Folders',
@@ -131,7 +134,7 @@ export const en = {
   'files.title': 'Files',
   'files.count.one': '{count} indexed file',
   'files.count.other': '{count} indexed files',
-  'files.searchPlaceholder': 'Search name or path…',
+  'files.searchPlaceholder': 'Search file name, folder or path…',
   'files.allFolders': 'All folders',
   'files.sort.nameAsc': 'Name A→Z',
   'files.sort.nameDesc': 'Name Z→A',
@@ -162,7 +165,7 @@ export const en = {
   'history.count.one': '{count} print event',
   'history.count.other': '{count} print events',
   'history.logPrint': '+ Log a print',
-  'history.searchPlaceholder': 'Search document, printer or note…',
+  'history.searchPlaceholder': 'Search document, folder, printer or note…',
   'history.allSources': 'All sources',
   'history.loading': 'Loading history…',
   'history.emptyTitle': 'No print events',

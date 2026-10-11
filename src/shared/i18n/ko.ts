@@ -90,6 +90,9 @@ export const ko: Catalog = {
   'overview.notPrinted.empty': '추적 중인 모든 파일이 인쇄되었습니다.',
   'overview.summary': '전체 {total}개 중 {printed}개 인쇄됨',
   'overview.loading': '개요를 불러오는 중…',
+  'overview.searchPlaceholder': '파일 또는 폴더 검색…',
+  'overview.filtered': '"{term}" 검색 결과',
+  'overview.search.noMatch': '"{term}"와 일치하는 파일이 없습니다.',
 
   /* -------------------------------------------------------------- folders */
   'folders.title': '폴더',
@@ -134,7 +137,7 @@ export const ko: Catalog = {
   'files.title': '파일',
   'files.count.one': '색인된 파일 {count}개',
   'files.count.other': '색인된 파일 {count}개',
-  'files.searchPlaceholder': '이름 또는 경로 검색…',
+  'files.searchPlaceholder': '파일 이름, 폴더 또는 경로 검색…',
   'files.allFolders': '모든 폴더',
   'files.sort.nameAsc': '이름 A→Z',
   'files.sort.nameDesc': '이름 Z→A',
@@ -165,7 +168,7 @@ export const ko: Catalog = {
   'history.count.one': '인쇄 기록 {count}건',
   'history.count.other': '인쇄 기록 {count}건',
   'history.logPrint': '+ 인쇄 기록 추가',
-  'history.searchPlaceholder': '문서, 프린터 또는 메모 검색…',
+  'history.searchPlaceholder': '문서, 폴더, 프린터 또는 메모 검색…',
   'history.allSources': '모든 방식',
   'history.loading': '기록을 불러오는 중…',
   'history.emptyTitle': '인쇄 기록이 없습니다',

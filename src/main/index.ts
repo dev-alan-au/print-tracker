@@ -97,6 +97,13 @@ function createWindow(): void {
 
         setTimeout(() => {
           void (async () => {
+            // `PT_DEBUG_SEARCH=lib` types a term into the search box before the
+            // overview/files shots, so search behaviour can be inspected from a
+            // screenshot. React ignores a plain `value =` assignment, so the
+            // native setter is used and an `input` event dispatched.
+            const searchTerm = process.env['PT_DEBUG_SEARCH']
+            const searchTabs = new Set(['overview', 'files'])
+
             for (let index = 0; index < tabs.length; index++) {
               if (index > 0) {
                 await mainWindow?.webContents.executeJavaScript(
@@ -104,6 +111,24 @@ function createWindow(): void {
                 )
               }
               await new Promise((resolve) => setTimeout(resolve, 900))
+
+              if (searchTerm && searchTabs.has(tabs[index])) {
+                await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const input = document.querySelector('.search')
+                     if (!input) return 'no search box'
+                     const setter = Object.getOwnPropertyDescriptor(
+                       window.HTMLInputElement.prototype, 'value'
+                     ).set
+                     setter.call(input, ${JSON.stringify(searchTerm)})
+                     input.dispatchEvent(new Event('input', { bubbles: true }))
+                     return 'typed'
+                   })()`
+                )
+                // Longer than the 250 ms debounce plus the refetch.
+                await new Promise((resolve) => setTimeout(resolve, 900))
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`

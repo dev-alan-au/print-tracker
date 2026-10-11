@@ -153,6 +153,41 @@ async function main(): Promise<void> {
     eq(last.lastPrintedAt, null, 'never-printed file sorts last')
   })
 
+  /* ------------------------------------------------- search by folder */
+
+  // Give one folder a display name that appears nowhere in its file paths, so a
+  // hit can only come from the folder row itself.
+  db.run('UPDATE folders SET name = ? WHERE id = ?', ['Client Reports', out.id])
+  try {
+    check('a file is found by its folder name alone', () => {
+      const page = files.list({ search: 'client reports' })
+      assert(page.total >= 1, 'expected a match driven by the folder name')
+      eq(page.items.length, page.total, 'the page should hold every matching row')
+    })
+
+    check('folder-name search keeps the pagination total honest', () => {
+      // The COUNT used to be assembled without the folders join, so any filter
+      // touching fo.* failed with "no such column: fo.name".
+      const page = files.list({ search: 'client reports', limit: 1 })
+      assert(page.total >= 1, 'total must be computed with the folders join')
+      eq(page.items.length, 1, 'limit should still apply to the page')
+    })
+
+    check('a search with no matches reports zero rather than the whole table', () => {
+      const page = files.list({ search: 'definitely-not-a-tracked-file' })
+      eq(page.total, 0, 'total')
+      eq(page.items.length, 0, 'items')
+    })
+  } finally {
+    db.run('UPDATE folders SET name = ? WHERE id = ?', ['output', out.id])
+  }
+
+  check('a wildcard in the search term is matched literally', () => {
+    // Without escaping, "%" would become "%%%" and match every file.
+    eq(files.list({ search: '%' }).total, 0, 'a bare % should not match everything')
+    eq(files.list({ search: '_' }).total, 0, 'a bare _ should not match a single character')
+  })
+
   /* ----------------------------------------------- spooler degradation */
 
   const spooler = new SpoolerService(files, prints, {
