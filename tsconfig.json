@@ -13,6 +13,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
+    // This config spans both processes - it is what the editor resolves to for
+    // every file. It therefore needs Node's globals for main/preload and Vite's
+    // client types for the renderer's asset imports (e.g. ./styles.css).
+    "types": ["node", "vite/client"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
