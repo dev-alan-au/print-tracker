@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { QueryResult, SchemaTable, ToastMessage } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage } from '../lib/format'
+import PageHelp from './PageHelp'
 
 /** Mirrors the guard in the main process, so the message can be translated. */
 const READ_ONLY_PATTERN = /^\s*(select|with|explain|pragma|values)\b/i
@@ -106,6 +107,7 @@ export default function QueryPanel({
         <div>
           <h1>{t('query.title')}</h1>
           <p>{t('query.subtitle')}</p>
+          <PageHelp page="query" />
         </div>
         <div className="row">
           <button type="button" className="btn primary" disabled={busy} onClick={() => void run()}>

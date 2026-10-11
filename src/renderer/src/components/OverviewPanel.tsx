@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Page, ToastMessage, TrackedFile } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatRelative } from '../lib/format'
+import PageHelp from './PageHelp'
 
 const LIST_LIMIT = 500
 
@@ -77,6 +78,7 @@ export default function OverviewPanel({
               : t('overview.summary', { printed: printed.total, total })}
             {term ? ` · ${t('overview.filtered', { term })}` : ''}
           </p>
+          <PageHelp page="overview" />
         </div>
         <div className="row">
           <input

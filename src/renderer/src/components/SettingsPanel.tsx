@@ -10,6 +10,7 @@ import type {
 } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
+import PageHelp from './PageHelp'
 import ResetDialog from './ResetDialog'
 import RestoreDialog from './RestoreDialog'
 
@@ -160,6 +161,7 @@ export default function SettingsPanel({
         <div>
           <h1>{t('settings.title')}</h1>
           <p>{t('settings.subtitle')}</p>
+          <PageHelp page="settings" />
         </div>
       </header>
 

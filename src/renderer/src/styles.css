@@ -257,6 +257,77 @@ code {
   font-size: 12.5px;
 }
 
+/* Collapsible "what is this page?" explainer. Native <details>, so the arrow
+   is the only thing that needs drawing. */
+.page-help {
+  margin-top: 9px;
+  max-width: 760px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+
+.page-help > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-weight: 600;
+  user-select: none;
+  /* Replaced by the ::after arrow below. */
+  list-style: none;
+}
+
+.page-help > summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-help > summary:hover {
+  color: var(--text);
+}
+
+.page-help > summary::after {
+  content: '▾';
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.page-help[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.page-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-panel);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.page-help-body {
+  padding: 2px 11px 11px 34px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+.page-help-body p {
+  margin: 0 0 8px;
+}
+
+.page-help-body p:last-child {
+  margin-bottom: 0;
+}
+
 .row {
   display: flex;
   align-items: center;

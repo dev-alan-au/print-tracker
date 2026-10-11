@@ -3,6 +3,7 @@ import type { FolderKind, ToastMessage, TrackedFolder } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage } from '../lib/format'
 import Modal from './Modal'
+import PageHelp from './PageHelp'
 
 interface PendingFolder {
   path: string
@@ -140,6 +141,7 @@ export default function FoldersPanel({
         <div>
           <h1>{t('folders.title')}</h1>
           <p>{t('folders.subtitle')}</p>
+          <PageHelp page="folders" />
         </div>
         <div className="row">
           <button type="button" className="btn" disabled={busy || folders.length === 0} onClick={() => void rescanAll()}>

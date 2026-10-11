@@ -3,6 +3,7 @@ import type { FileQuery, Page, ToastMessage, TrackedFile, TrackedFolder } from '
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
+import PageHelp from './PageHelp'
 
 export default function FilesPanel({
   refreshToken,
@@ -94,6 +95,7 @@ export default function FilesPanel({
             {tn(data.total, 'files.count.one', 'files.count.other')}
             {loading ? ` · ${t('common.refreshing')}` : ''}
           </p>
+          <PageHelp page="files" />
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 import type { DashboardStats, MessageKey, PrintSource } from '@shared/types'
 import { useI18n } from '../i18n'
 import { formatDayLabel, formatRelative } from '../lib/format'
+import PageHelp from './PageHelp'
 import SourceBadge from './SourceBadge'
 
 const SOURCE_ORDER: PrintSource[] = ['watcher', 'spooler', 'manual']
@@ -40,6 +41,7 @@ export default function Dashboard({
         <div>
           <h1>{t('dashboard.title')}</h1>
           <p>{t('dashboard.subtitle')}</p>
+          <PageHelp page="dashboard" />
         </div>
         <div className="row">
           <button type="button" className="btn" onClick={() => onNavigate('folders')}>

@@ -3,6 +3,7 @@ import type { Page, PrintEvent, PrintSource, ToastMessage } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
+import PageHelp from './PageHelp'
 import SourceBadge from './SourceBadge'
 
 export default function HistoryPanel({
@@ -66,6 +67,7 @@ export default function HistoryPanel({
             {tn(data.total, 'history.count.one', 'history.count.other')}
             {loading ? ` · ${t('common.refreshing')}` : ''}
           </p>
+          <PageHelp page="history" />
         </div>
         <div className="row">
           <button type="button" className="btn primary" onClick={() => setShowManual(true)}>

@@ -38,6 +38,30 @@ export const en = {
   'common.refreshing': 'refreshing…',
   'common.never': 'never',
 
+  /* ----------------------------------------------------------- page help */
+  'help.summary': 'What is this page?',
+
+  'help.overview':
+    'Your home screen: two lists showing what you have printed and what you have not.\n\nOn the left are the files Print Tracker has seen being printed. On the right are the files it has not seen printed yet.\n\nNothing here changes your documents. The app only keeps notes about them.',
+
+  'help.dashboard':
+    'Numbers and graphs about everything Print Tracker has noticed so far.\n\nToday and this week follow the clock and calendar settings of your computer. If the totals look wrong, the Folders page is where you check whether a folder is still being watched.\n\nThe two buttons at the top jump straight to your folders or the full print log.',
+
+  'help.folders':
+    'These are the folders Print Tracker keeps an eye on. Add a folder once and the files inside it are listed for you.\n\nYour files are never copied, moved or changed. The app only remembers details about them, such as the name, the size and when they were last printed.\n\nA Library folder is simply listed. An Output folder also treats every new file that appears in it as something you printed, which suits printing that saves files into a folder. Rescan makes the app read a folder again.',
+
+  'help.files':
+    'Every file Print Tracker has found in the folders you added.\n\nType in the search box to find a file by its name or by the folder it sits in. The list can also be sorted and filtered.\n\nA missing label means the file is no longer where the app last saw it, usually because it was moved, renamed or deleted outside the app. You can open a file, show it in its folder, or record a print for it yourself.',
+
+  'help.history':
+    'A list of every print Print Tracker knows about, newest first.\n\nThe small tag on each row says how the print was noticed: a folder you asked the app to watch, the print log kept by Windows, or your own entry added by hand.\n\nDeleting a row only removes it from this list. It never touches the file itself.',
+
+  'help.query':
+    'A tool for advanced users. You type a question in a special language called SQL and the answer appears in a table.\n\nBy default it is allowed to look but not to touch, so it cannot change anything. Only turn read-only off if you know how SQL works, because changes made there are permanent.\n\nIf SQL means nothing to you, you never need this page.',
+
+  'help.settings':
+    'Everything you can change about how Print Tracker behaves.\n\nScreen appearance sets the language and the light or dark colours. Print tracking switches the Windows print log on and off, and only works on Windows. Backups are copies of everything the app has saved, taken automatically each time it starts, and you can make one yourself or go back to an older one.\n\nWatching decides how closely folders are checked for new files. The Danger zone erases everything the app has saved and starts afresh.',
+
   'source.watcher': 'Folder watch',
   'source.spooler': 'Spooler',
   'source.manual': 'Manual',
@@ -47,7 +71,7 @@ export const en = {
 
   /* ------------------------------------------------------------ dashboard */
   'dashboard.title': 'Dashboard',
-  'dashboard.subtitle': 'Everything Print Tracker has indexed and printed so far.',
+  'dashboard.subtitle': 'A summary of your folders, files and prints.',
   'dashboard.manageFolders': 'Manage folders',
   'dashboard.printHistory': 'Print history',
 
@@ -94,7 +118,7 @@ export const en = {
   /* -------------------------------------------------------------- folders */
   'folders.title': 'Folders',
   'folders.subtitle':
-    'Library folders are indexed and tracked. Output folders also record a print every time a new file lands in them.',
+    'The folders Print Tracker keeps an eye on. Your files stay where they are.',
   'folders.rescanAll': 'Rescan all',
   'folders.add': '+ Add folder',
 
@@ -197,7 +221,7 @@ export const en = {
 
   /* ---------------------------------------------------------------- query */
   'query.title': 'Query',
-  'query.subtitle': 'Run SQL against the local database.',
+  'query.subtitle': 'For advanced users: ask the saved data direct questions.',
   'query.schema.title': 'Schema',
   'query.editor.placeholder': 'SELECT * FROM files LIMIT 50;',
   'query.run': 'Run',
@@ -215,7 +239,7 @@ export const en = {
 
   /* ------------------------------------------------------------- settings */
   'settings.title': 'Settings',
-  'settings.subtitle': 'Detection sources, polling behaviour and application information.',
+  'settings.subtitle': 'Preferences, backups and housekeeping.',
 
   'settings.appearance.title': 'Appearance',
   'settings.appearance.language': 'Display language',

@@ -175,6 +175,17 @@ function createWindow(): void {
                 await new Promise((resolve) => setTimeout(resolve, 1200))
               }
 
+              // `PT_DEBUG_HELP=1` expands the "what is this page?" explainer,
+              // which is otherwise behind a click on every screen.
+              if (process.env['PT_DEBUG_HELP']) {
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelectorAll('.page-help').forEach((node) => {
+                     node.open = true
+                   })`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 300))
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`
