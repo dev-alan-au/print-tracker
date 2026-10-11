@@ -7,6 +7,9 @@ import type { AppLanguage, MessageKey, MessageParams, NoteKey } from './i18n/typ
 
 export type { AppLanguage, Locale, NoteKey, MessageKey, MessageParams } from './i18n/types'
 
+/** UI colour scheme. Light is the default. */
+export type AppTheme = 'light' | 'dark'
+
 /* ------------------------------------------------------------------ folders */
 
 /** `library` folders are indexed. `output` folders additionally record a print
@@ -178,6 +181,8 @@ export interface AppSettings {
   minFileStabilityMs: number
   /** UI language; `system` follows the operating system locale. */
   language: AppLanguage
+  /** UI colour scheme. */
+  theme: AppTheme
 }
 
 export interface AppInfo {

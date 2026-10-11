@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LOCALE_LABELS, LOCALES, type AppLanguage } from '@shared/i18n'
-import type { AppInfo, AppSettings, SpoolerStatus, ToastMessage } from '@shared/types'
+import type { AppInfo, AppSettings, AppTheme, SpoolerStatus, ToastMessage } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
 
@@ -133,6 +133,18 @@ export default function SettingsPanel({
                   {LOCALE_LABELS[entry]}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="field" style={{ maxWidth: 320 }}>
+            <label htmlFor="theme">{t('settings.appearance.theme')}</label>
+            <select
+              id="theme"
+              value={settings?.theme ?? 'light'}
+              onChange={(event) => void patch({ theme: event.target.value as AppTheme })}
+            >
+              <option value="light">{t('settings.appearance.themeLight')}</option>
+              <option value="dark">{t('settings.appearance.themeDark')}</option>
             </select>
           </div>
         </div>

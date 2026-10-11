@@ -184,9 +184,12 @@ export const ko: Catalog = {
   'settings.title': '설정',
   'settings.subtitle': '탐지 방식과 폴링 동작, 애플리케이션 정보입니다.',
 
-  'settings.appearance.title': '언어',
+  'settings.appearance.title': '표시 설정',
   'settings.appearance.language': '표시 언어',
   'settings.appearance.system': '시스템 기본값',
+  'settings.appearance.theme': '테마',
+  'settings.appearance.themeLight': '라이트',
+  'settings.appearance.themeDark': '다크',
 
   'settings.spooler.title': 'Windows 인쇄 스풀러',
   'settings.spooler.running': '실행 중',

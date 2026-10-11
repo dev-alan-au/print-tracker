@@ -182,9 +182,12 @@ export const en = {
   'settings.title': 'Settings',
   'settings.subtitle': 'Detection sources, polling behaviour and application information.',
 
-  'settings.appearance.title': 'Language',
+  'settings.appearance.title': 'Appearance',
   'settings.appearance.language': 'Display language',
   'settings.appearance.system': 'System default',
+  'settings.appearance.theme': 'Theme',
+  'settings.appearance.themeLight': 'Light',
+  'settings.appearance.themeDark': 'Dark',
 
   'settings.spooler.title': 'Windows print spooler',
   'settings.spooler.running': 'running',

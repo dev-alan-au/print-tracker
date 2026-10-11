@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type AppLanguage, type Locale, type MessageKey, LOCALES, LOCALE_LABELS, resolveLocale } from '@shared/i18n'
-import type { AppSettings, DashboardStats, SpoolerStatus, ToastMessage } from '@shared/types'
+import type {
+  AppSettings,
+  AppTheme,
+  DashboardStats,
+  SpoolerStatus,
+  ToastMessage
+} from '@shared/types'
 import Dashboard from './components/Dashboard'
 import FilesPanel from './components/FilesPanel'
 import FoldersPanel from './components/FoldersPanel'
@@ -8,6 +14,13 @@ import HistoryPanel from './components/HistoryPanel'
 import SettingsPanel from './components/SettingsPanel'
 import Toasts, { type Toast } from './components/Toasts'
 import { I18nProvider, createI18n } from './i18n'
+import {
+  applyTheme,
+  readCachedLanguage,
+  readCachedTheme,
+  writeCachedLanguage,
+  writeCachedTheme
+} from './lib/preferences'
 
 type TabId = 'dashboard' | 'folders' | 'files' | 'history' | 'settings'
 
@@ -19,31 +32,6 @@ const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
   { id: 'settings', labelKey: 'nav.settings', icon: '⚙' }
 ]
 
-const LANGUAGE_CACHE_KEY = 'print-tracker.language'
-
-/**
- * The database is the source of truth for the language, but reading it is
- * asynchronous. Mirroring the choice into localStorage lets the very first
- * paint use the right language instead of flashing the default.
- */
-function readCachedLanguage(): AppLanguage {
-  try {
-    const cached = window.localStorage.getItem(LANGUAGE_CACHE_KEY)
-    if (cached === 'en' || cached === 'ko' || cached === 'system') return cached
-  } catch {
-    /* storage unavailable */
-  }
-  return 'system'
-}
-
-function writeCachedLanguage(language: AppLanguage): void {
-  try {
-    window.localStorage.setItem(LANGUAGE_CACHE_KEY, language)
-  } catch {
-    /* storage unavailable; the database still remembers the choice */
-  }
-}
-
 export default function App() {
   const [tab, setTab] = useState<TabId>('dashboard')
   const [refreshToken, setRefreshToken] = useState(0)
@@ -51,6 +39,7 @@ export default function App() {
   const [spoolerStatus, setSpoolerStatus] = useState<SpoolerStatus | null>(null)
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [language, setLanguage] = useState<AppLanguage>(readCachedLanguage)
+  const [theme, setTheme] = useState<AppTheme>(() => readCachedTheme() ?? 'light')
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const refresh = useCallback(() => setRefreshToken((value) => value + 1), [])
@@ -66,10 +55,17 @@ export default function App() {
     document.documentElement.lang = locale
   }, [locale])
 
+  // Keep the colour scheme in sync with the stored setting.
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
+
   const applySettings = useCallback((next: AppSettings) => {
     setSettings(next)
     setLanguage(next.language)
     writeCachedLanguage(next.language)
+    setTheme(next.theme)
+    writeCachedTheme(next.theme)
   }, [])
 
   useEffect(() => {
