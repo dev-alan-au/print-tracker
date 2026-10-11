@@ -79,6 +79,7 @@ export class BackupService {
          (SELECT COUNT(*) FROM folders)                                   AS folders,
          (SELECT COUNT(*) FROM files)                                     AS files,
          (SELECT COUNT(*) FROM print_events)                              AS prints,
+         (SELECT COUNT(*) FROM students)                                  AS students,
          (SELECT COALESCE(MAX(id), 0) FROM print_events)                  AS newestEvent,
          (SELECT COALESCE(SUM(printed_count), 0) FROM files)              AS printTotal,
          (SELECT COALESCE(MAX(last_printed_at), '') FROM files)           AS lastPrinted,

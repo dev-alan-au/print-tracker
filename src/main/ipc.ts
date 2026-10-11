@@ -243,6 +243,34 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     return report
   })
 
+  /* ------------------------------------------------------------ students */
+
+  ipcMain.handle(IPC.students.list, () => ctx.students.list())
+
+  ipcMain.handle(IPC.students.add, (_event, name: unknown) => {
+    if (typeof name !== 'string') throw new Error('A student name is required.')
+    return ctx.students.add(name)
+  })
+
+  ipcMain.handle(IPC.students.rename, (_event, id: unknown, name: unknown) => {
+    if (typeof name !== 'string') throw new Error('A student name is required.')
+    return ctx.students.rename(asId(id), name)
+  })
+
+  ipcMain.handle(IPC.students.remove, (_event, id: unknown) => {
+    const studentId = asId(id)
+    ctx.students.remove(studentId)
+    // Removing whoever is selected must not leave the app attributing prints to
+    // a student that no longer exists.
+    if (ctx.currentStudent() === studentId) ctx.selectStudent(null)
+  })
+
+  ipcMain.handle(IPC.students.current, () => ctx.currentStudent())
+
+  ipcMain.handle(IPC.students.select, (_event, id: unknown) =>
+    ctx.selectStudent(id === null || id === undefined ? null : asId(id))
+  )
+
   /* ------------------------------------------------------------ settings */
 
   ipcMain.handle(IPC.settings.get, () => ctx.settings.get())

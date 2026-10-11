@@ -49,6 +49,10 @@ const v4Match = schemaSource.match(/\/\* v3 -> v4 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
 assert(v4Match, 'could not extract the v3 -> v4 migration from schema.ts')
 const SCHEMA_V4_SQL = v4Match[1]
 
+const v5Match = schemaSource.match(/\/\* v4 -> v5 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
+assert(v5Match, 'could not extract the v4 -> v5 migration from schema.ts')
+const SCHEMA_V5_SQL = v5Match[1]
+
 const dbPath = join(ROOT, 'print-tracker.db')
 const db = new Database(dbPath)
 
@@ -290,6 +294,20 @@ check('migrations upgrade an existing database in order', () => {
   const fileColumns = upgraded.all('PRAGMA table_info(files)').map((r) => r.name)
   assert(fileColumns.includes('notes'), 'expected the notes column after v4')
   assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 4, 'now at v4')
+
+  upgraded.exec('BEGIN')
+  upgraded.exec(SCHEMA_V5_SQL)
+  upgraded.exec('PRAGMA user_version = 5')
+  upgraded.exec('COMMIT')
+
+  const studentsTable = upgraded.get(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='students'"
+  )
+  assert(studentsTable, 'expected the students table after v5')
+  const eventColumns = upgraded.all('PRAGMA table_info(print_events)').map((r) => r.name)
+  assert(eventColumns.includes('student_id'), 'expected student_id after v5')
+  assert(eventColumns.includes('student_name'), 'expected student_name after v5')
+  assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 5, 'now at v5')
 
   upgraded.close()
 })

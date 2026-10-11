@@ -20,6 +20,7 @@ import { ResetService } from '../src/main/services/reset'
 import { RestoreService } from '../src/main/services/restore'
 import { SettingsService } from '../src/main/services/settings'
 import { SpoolerService } from '../src/main/services/spooler'
+import { StudentService } from '../src/main/services/students'
 import { WatcherService } from '../src/main/services/watcher'
 
 const ROOT = '/tmp/pt-e2e'
@@ -438,7 +439,7 @@ async function main(): Promise<void> {
     const schema = query.schema()
     eq(
       schema.map((table) => table.name).sort(),
-      ['files', 'folders', 'print_events', 'settings'],
+      ['files', 'folders', 'print_events', 'settings', 'students'],
       'tables'
     )
 
@@ -571,7 +572,7 @@ async function main(): Promise<void> {
     const copy = new Database(entry.path, { readOnly: true })
     eq(Number(copy.get('SELECT COUNT(*) AS c FROM folders').c), 1, 'folders in the backup')
     eq(Number(copy.get('SELECT COUNT(*) AS c FROM print_events').c), 1, 'events in the backup')
-    eq(Number(copy.get('PRAGMA user_version').user_version), 4, 'schema version in the backup')
+    eq(Number(copy.get('PRAGMA user_version').user_version), 5, 'schema version in the backup')
     copy.close()
   })
 
@@ -660,8 +661,8 @@ async function main(): Promise<void> {
     eq(inspection.problems, [], 'problems')
     assert(inspection.ok, 'expected the snapshot to be restorable')
     eq(inspection.counts, goodCounts, 'reported counts')
-    eq(inspection.schemaVersion, 4, 'schema version of the candidate')
-    eq(inspection.supportedVersion, 4, 'schema version this build supports')
+    eq(inspection.schemaVersion, 5, 'schema version of the candidate')
+    eq(inspection.supportedVersion, 5, 'schema version this build supports')
     assert(inspection.sizeBytes > 0, 'size')
   })
 
@@ -785,7 +786,7 @@ async function main(): Promise<void> {
     const inspection = restore.inspect(file)
     assert(inspection.problems.includes('newerSchema'), 'expected newerSchema')
     eq(inspection.schemaVersion, 99, 'reported version')
-    eq(inspection.supportedVersion, 4, 'supported version')
+    eq(inspection.supportedVersion, 5, 'supported version')
   })
 
   check('a truncated database is reported as unreadable', () => {
@@ -1076,6 +1077,195 @@ async function main(): Promise<void> {
     assert(event, 'unrelated files must not be suppressed')
   })
 
+  /* ------------------------------------------------------------ students */
+
+  const students = new StudentService(db)
+  /** A print service whose "who is using the app" can be moved about. */
+  let currentStudentId: number | null = null
+  const scopedPrints = new PrintService(db, () => currentStudentId)
+
+  check('a student is just a name', () => {
+    const added = students.add('  Alice   Smith  ')
+    // Collapsed, because a name typed with stray spaces is still that name.
+    eq(added.name, 'Alice Smith', 'whitespace normalised')
+    eq(added.printCount, 0, 'nothing printed yet')
+  })
+
+  check('names are unique, ignoring case', () => {
+    let threw = false
+    try {
+      students.add('alice smith')
+    } catch {
+      threw = true
+    }
+    assert(threw, 'Alice and alice would be indistinguishable in the picker')
+  })
+
+  check('a student needs a name', () => {
+    let threw = false
+    try {
+      students.add('   ')
+    } catch {
+      threw = true
+    }
+    assert(threw, 'expected an empty name to be refused')
+  })
+
+  check('students are listed by name', () => {
+    students.add('Bob')
+    eq(
+      students.list().map((student) => student.name),
+      ['Alice Smith', 'Bob'],
+      'sorted by name'
+    )
+  })
+
+  check('renaming is refused when the name is taken', () => {
+    const bob = students.list().find((student) => student.name === 'Bob')
+    assert(bob, 'expected Bob')
+    let threw = false
+    try {
+      students.rename(bob.id, 'alice smith')
+    } catch {
+      threw = true
+    }
+    assert(threw, 'expected the clash to be refused')
+  })
+
+  check('a print is attributed to whoever is using the app', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const alice = students.list().find((student) => student.name === 'Alice Smith')
+    assert(alice, 'expected Alice')
+    currentStudentId = alice.id
+
+    const event = scopedPrints.addManual({ fileId: file.id, documentName: file.name })
+    eq(event.studentId, alice.id, 'attributed to the current student')
+    eq(event.studentName, 'Alice Smith', 'with the name captured alongside')
+  })
+
+  check('a print with nobody selected is attributed to nobody', () => {
+    currentStudentId = null
+    const event = scopedPrints.addManual({ documentName: 'printed-with-nobody-selected' })
+    eq(event.studentId, null, 'no student')
+    eq(event.studentName, null, 'and no name')
+  })
+
+  check('an explicit student overrides whoever is using the app', () => {
+    const bob = students.list().find((student) => student.name === 'Bob')
+    assert(bob, 'expected Bob')
+    currentStudentId = null
+
+    const event = scopedPrints.record({
+      documentName: 'explicitly-bobs',
+      source: 'manual',
+      studentId: bob.id
+    })
+    eq(event?.studentId, bob.id, 'the explicit id wins')
+  })
+
+  check('the history can be filtered to one student', () => {
+    const alice = students.list().find((student) => student.name === 'Alice Smith')
+    assert(alice, 'expected Alice')
+
+    const hers = scopedPrints.list({ studentId: alice.id })
+    assert(hers.total > 0, 'expected at least one print')
+    assert(
+      hers.items.every((event) => event.studentId === alice.id),
+      'nothing of anybody else is included'
+    )
+    assert(hers.total < scopedPrints.count(), 'and it is a subset of the whole history')
+  })
+
+  check('print figures are counted per student, not only in total', () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const alice = students.list().find((student) => student.name === 'Alice Smith')
+    const bob = students.list().find((student) => student.name === 'Bob')
+    assert(alice && bob, 'expected both students')
+
+    // Bob prints the file Alice already printed, so the two views must disagree.
+    scopedPrints.record({ fileId: file.id, source: 'manual', documentName: file.name, studentId: bob.id })
+
+    const globally = files.list({ search: 'invoice-a' }).items[0]
+    const forAlice = files.list({ studentId: alice.id, search: 'invoice-a' }).items[0]
+    const forBob = files.list({ studentId: bob.id, search: 'invoice-a' }).items[0]
+
+    assert(
+      globally.printedCount > forAlice.printedCount,
+      'the global count includes both students'
+    )
+    eq(forAlice.printedCount, 1, 'Alice printed it once')
+    eq(forBob.printedCount, 1, 'Bob printed it once')
+
+    // Each student's timestamp must be their own latest, not the file's. Taken
+    // from their history rather than compared between the two, which would be
+    // a race on the clock when both prints land in the same millisecond.
+    const aliceEvents = scopedPrints.list({ studentId: alice.id, fileId: file.id }).items
+    eq(
+      forAlice.lastPrintedAt,
+      aliceEvents[0].printedAt,
+      'Alice sees the time she printed it, not the newest overall'
+    )
+  })
+
+  check('printed and not-printed follow the student', () => {
+    const bob = students.list().find((student) => student.name === 'Bob')
+    const nobody = students.add('Nobody Has Printed')
+    assert(bob, 'expected Bob')
+
+    const bobPrinted = files.list({ studentId: bob.id, printed: 'printed' }).total
+    const nobodyPrinted = files.list({ studentId: nobody.id, printed: 'printed' }).total
+    const nobodyUnprinted = files.list({ studentId: nobody.id, printed: 'unprinted' }).total
+
+    eq(nobodyPrinted, 0, 'a new student has printed nothing')
+    assert(bobPrinted > 0, 'Bob has printed something')
+    assert(
+      nobodyUnprinted > 0,
+      'and everything is still unprinted for the student who has printed nothing'
+    )
+
+    // The two views partition the same rows, which is what the filter pair
+    // relies on.
+    eq(
+      files.list({ studentId: nobody.id, printed: 'printed' }).total +
+        nobodyUnprinted,
+      files.list({ studentId: nobody.id }).total,
+      'the pair covers every file for that student'
+    )
+    students.remove(nobody.id)
+  })
+
+  check('deleting a student keeps their prints and the name they had', () => {
+    const bob = students.list().find((student) => student.name === 'Bob')
+    assert(bob, 'expected Bob')
+    const bobsPrints = scopedPrints.list({ studentId: bob.id }).total
+    assert(bobsPrints > 0, 'expected Bob to have printed something')
+
+    students.remove(bob.id)
+
+    eq(scopedPrints.list({ studentId: bob.id }).total, 0, 'no longer attributed to Bob')
+    eq(scopedPrints.count(), scopedPrints.count(), 'history is unchanged in size')
+
+    const orphan = scopedPrints
+      .list({})
+      .items.find((event) => event.studentName === 'Bob' && event.studentId === null)
+    assert(orphan, 'the print survives, detached, still saying who it was for')
+  })
+
+  check('a renamed student does not rewrite the past', () => {
+    const alice = students.list().find((student) => student.name === 'Alice Smith')
+    assert(alice, 'expected Alice')
+    const before = scopedPrints.list({ studentId: alice.id }).items[0]
+    assert(before?.studentName === 'Alice Smith', 'expected the original name')
+
+    students.rename(alice.id, 'Alice Jones')
+
+    // The event keeps the name it was printed under; the student row has moved
+    // on. That is the point of denormalising it.
+    const after = scopedPrints.list({ studentId: alice.id }).items[0]
+    eq(after.studentName, 'Alice Smith', 'history keeps the name it recorded')
+    eq(students.get(alice.id)?.name, 'Alice Jones', 'while the student is renamed')
+  })
+
   /* --------------------------------------------------------------- reset */
 
   const reset = new ResetService(db, backups)
@@ -1117,12 +1307,15 @@ async function main(): Promise<void> {
     eq(files.list({}).total, 0, 'file list')
     eq(prints.list({}).total, 0, 'print list')
     eq(files.count(), 0, 'present file count')
+    // Students are part of "everything the app has saved", so a reset that left
+    // them behind would be a reset that only looked complete.
+    eq(students.list().length, 0, 'students are cleared too')
   })
 
   check('reset keeps the schema, so no migration is replayed', () => {
     // Rows are deleted rather than the file removed, so user_version and the
     // indexes must survive untouched.
-    eq(Number(db.get('PRAGMA user_version')?.user_version ?? 0), 4, 'schema version')
+    eq(Number(db.get('PRAGMA user_version')?.user_version ?? 0), 5, 'schema version')
     const index = db.get<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_files_last_printed'"
     )

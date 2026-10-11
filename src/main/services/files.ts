@@ -26,16 +26,46 @@ interface FileRow {
 }
 
 /**
- * Shared row source. Kept in one place because the WHERE clause can reference
- * `fo.*` (folder search), so every query that embeds it - including the COUNT
- * for pagination - must carry the same join.
+ * Where a file's print figures come from.
+ *
+ * Normally they are columns on the row. When a student is selected they are
+ * aggregated from that student's print events instead, so "printed" means
+ * "printed by them" rather than by anyone. Every query that embeds the row
+ * source - including the pagination COUNT - has to use the same one, because
+ * the filter and the sort both reference these expressions.
  */
-const FROM_FILES = `
-  FROM files fi
-  LEFT JOIN folders fo ON fo.id = fi.folder_id
-`
+interface PrintSources {
+  from: string
+  printedCount: string
+  lastPrintedAt: string
+}
 
-const SELECT_FILE = `
+function printSources(studentScoped: boolean): PrintSources {
+  const base = `
+  FROM files fi
+  LEFT JOIN folders fo ON fo.id = fi.folder_id`
+
+  if (!studentScoped) {
+    return { from: base, printedCount: 'fi.printed_count', lastPrintedAt: 'fi.last_printed_at' }
+  }
+
+  // One aggregate rather than a correlated subquery per column: the count and
+  // the timestamp then agree, and there is a single `?` to bind.
+  return {
+    from: `${base}
+  LEFT JOIN (
+    SELECT file_id, COUNT(*) AS prints, MAX(printed_at) AS lastPrinted
+      FROM print_events
+     WHERE student_id = ?
+     GROUP BY file_id
+  ) sp ON sp.file_id = fi.id`,
+    printedCount: 'COALESCE(sp.prints, 0)',
+    lastPrintedAt: 'sp.lastPrinted'
+  }
+}
+
+function selectFile(src: PrintSources): string {
+  return `
   SELECT fi.id,
          fi.folder_id       AS folderId,
          fo.name            AS folderName,
@@ -48,11 +78,16 @@ const SELECT_FILE = `
          fi.present,
          fi.first_seen_at   AS firstSeenAt,
          fi.last_seen_at    AS lastSeenAt,
-         fi.printed_count   AS printedCount,
-         fi.last_printed_at AS lastPrintedAt,
+         ${src.printedCount} AS printedCount,
+         ${src.lastPrintedAt} AS lastPrintedAt,
          fi.notes           AS notes
-  ${FROM_FILES}
+  ${src.from}
 `
+}
+
+/** Whole-index figures, for the paths that do not care who is using the app. */
+const UNSCOPED = printSources(false)
+const SELECT_FILE = selectFile(UNSCOPED)
 
 function mapFile(row: FileRow): TrackedFile {
   return {
@@ -236,8 +271,14 @@ export class FileService {
   }
 
   list(query: FileQuery): Page<TrackedFile> {
+    const scoped = query.studentId !== undefined && query.studentId !== null
+    const src = printSources(scoped)
+
     const where: string[] = []
     const params: (string | number)[] = []
+    // The aggregate join binds its student before any WHERE clause does, so this
+    // one goes at the front of the parameter list regardless of filter order.
+    const leading: (string | number)[] = scoped ? [query.studentId as number] : []
 
     if (query.folderId !== undefined && query.folderId !== null) {
       where.push('fi.folder_id = ?')
@@ -266,9 +307,9 @@ export class FileService {
       params.push(pattern, pattern, pattern, pattern)
     }
     if (query.printed === 'printed') {
-      where.push('fi.printed_count > 0')
+      where.push(`${src.printedCount} > 0`)
     } else if (query.printed === 'unprinted') {
-      where.push('fi.printed_count = 0')
+      where.push(`${src.printedCount} = 0`)
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
@@ -276,24 +317,25 @@ export class FileService {
     const sortColumns: Record<string, string> = {
       name: 'fi.name COLLATE NOCASE',
       recent: 'fi.last_seen_at',
-      prints: 'fi.printed_count',
+      prints: src.printedCount,
       size: 'fi.size',
-      lastPrinted: 'fi.last_printed_at'
+      lastPrinted: src.lastPrintedAt
     }
     const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
     const orderBy = sortColumns[query.sort ?? 'name'] ?? sortColumns.name
 
     const limit = Math.min(Math.max(query.limit ?? 200, 1), 1000)
     const offset = Math.max(query.offset ?? 0, 0)
+    const allParams = [...leading, ...params]
 
     const totalRow = this.db.get<{ c: number }>(
-      `SELECT COUNT(*) AS c ${FROM_FILES} ${whereSql}`,
-      params
+      `SELECT COUNT(*) AS c ${src.from} ${whereSql}`,
+      allParams
     )
 
     const rows = this.db.all<FileRow>(
-      `${SELECT_FILE} ${whereSql} ORDER BY ${orderBy} ${direction}, fi.id ASC LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+      `${selectFile(src)} ${whereSql} ORDER BY ${orderBy} ${direction}, fi.id ASC LIMIT ? OFFSET ?`,
+      [...allParams, limit, offset]
     )
 
     return { items: rows.map(mapFile), total: Number(totalRow?.c ?? 0) }

@@ -23,6 +23,7 @@ import { ResetService } from './services/reset'
 import { RestoreService } from './services/restore'
 import { SettingsService } from './services/settings'
 import { SpoolerService } from './services/spooler'
+import { StudentService } from './services/students'
 import { WatcherService } from './services/watcher'
 
 export interface AppEvents {
@@ -37,6 +38,7 @@ export interface AppContext {
   readonly folders: FolderService
   readonly files: FileService
   readonly prints: PrintService
+  readonly students: StudentService
   readonly settings: SettingsService
   readonly watcher: WatcherService
   readonly spooler: SpoolerService
@@ -53,6 +55,8 @@ export interface AppContext {
   rescanFolder(id: number): number
   rescanAll(): number
   printFiles(input: PrintRequestInput): Promise<PrintReport>
+  currentStudent(): number | null
+  selectStudent(id: number | null): number | null
   resetApp(options: ResetOptions): ResetReport
   restoreBackup(path: string): RestoreReport
   startWatching(): void
@@ -64,7 +68,15 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   const db = new Db(databasePath)
   const folders = new FolderService(db)
   const files = new FileService(db)
-  const prints = new PrintService(db)
+  const students = new StudentService(db)
+
+  /**
+   * Who is using the app. Kept here rather than in the renderer because the
+   * watcher and the spooler record prints on their own schedule, and a print
+   * should be attributed to whoever was at the machine when it happened.
+   */
+  let currentStudentId: number | null = null
+  const prints = new PrintService(db, () => currentStudentId)
   const settings = new SettingsService(db)
 
   // Snapshots live beside the database so the two travel together.
@@ -160,9 +172,22 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
    */
   const resetApp = (options: ResetOptions): ResetReport => {
     const report = reset.reset(options)
+    // The students are gone with everything else, so nobody is selected.
+    currentStudentId = null
     watcher.refresh()
     events.filesChanged()
     return report
+  }
+
+  /**
+   * Changing who is using the app. A selection that no longer exists is treated
+   * as no selection rather than being allowed to attribute prints to a ghost.
+   */
+  const selectStudent = (id: number | null): number | null => {
+    currentStudentId = id === null ? null : (students.get(id)?.id ?? null)
+    // The print figures on every screen are now relative to someone else.
+    events.filesChanged()
+    return currentStudentId
   }
 
   /** Same re-sync as a reset: the folder table has been replaced wholesale. */
@@ -182,6 +207,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     folders,
     files,
     prints,
+    students,
     settings,
     watcher,
     spooler,
@@ -197,6 +223,8 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     rescanFolder,
     rescanAll,
     printFiles,
+    currentStudent: () => currentStudentId,
+    selectStudent,
     resetApp,
     restoreBackup,
     startWatching,

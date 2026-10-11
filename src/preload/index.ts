@@ -24,6 +24,7 @@ import type {
   RestoreInspection,
   RestoreReport,
   SchemaTable,
+  Student,
   SpoolerStatus,
   ToastMessage,
   TrackedFile,
@@ -109,6 +110,16 @@ const api: PrintTrackerApi = {
     restoreBackup: (path: string) =>
       ipcRenderer.invoke(IPC.app.restoreBackup, path) as Promise<RestoreReport>,
     pickBackupFile: () => ipcRenderer.invoke(IPC.app.pickBackupFile) as Promise<string | null>
+  },
+  students: {
+    list: () => ipcRenderer.invoke(IPC.students.list) as Promise<Student[]>,
+    add: (name: string) => ipcRenderer.invoke(IPC.students.add, name) as Promise<Student>,
+    rename: (id: number, name: string) =>
+      ipcRenderer.invoke(IPC.students.rename, id, name) as Promise<Student>,
+    remove: (id: number) => ipcRenderer.invoke(IPC.students.remove, id) as Promise<void>,
+    current: () => ipcRenderer.invoke(IPC.students.current) as Promise<number | null>,
+    select: (id: number | null) =>
+      ipcRenderer.invoke(IPC.students.select, id) as Promise<number | null>
   },
   events: {
     onFilesChanged: (callback: () => void) => subscribe<void>(IPC.events.filesChanged, callback),

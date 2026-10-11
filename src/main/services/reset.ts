@@ -9,7 +9,7 @@ import type { BackupService } from './backups'
  * Not every table is declared `ON DELETE CASCADE` in a way that helps a bare
  * `DELETE FROM`, so the children go first.
  */
-const TABLES = ['print_events', 'files', 'folders', 'settings'] as const
+const TABLES = ['print_events', 'files', 'folders', 'students', 'settings'] as const
 
 /**
  * Returns the application to the state it had on first run.

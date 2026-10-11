@@ -57,6 +57,18 @@ export interface FolderDirectory {
   fileCount: number
 }
 
+/* --------------------------------------------------------------- students */
+
+/** Someone using the app. Only a name is required - the point is to attribute
+ *  prints to a person, not to keep a record about them. */
+export interface Student {
+  id: number
+  name: string
+  createdAt: string
+  /** Print events currently attributed to this student. */
+  printCount: number
+}
+
 /* -------------------------------------------------------------------- files */
 
 export interface TrackedFile {
@@ -88,6 +100,11 @@ export interface TrackedFile {
 
 export interface FileQuery {
   folderId?: number | null
+  /**
+   * When set, the print counts on each row describe this student only, so
+   * "printed" means "printed by them" rather than by anyone.
+   */
+  studentId?: number | null
   /**
    * Restrict to files inside this directory and everything below it. Absolute,
    * as stored on the file rows. Ignored when empty.
@@ -176,6 +193,13 @@ export interface PrintEvent {
   noteKey: NoteKey | null
   /** Placeholder values for `noteKey`. */
   noteParams: MessageParams | null
+  /** The student this print belongs to, or null when nothing was selected. */
+  studentId: number | null
+  /**
+   * The student's name at the time of printing. Denormalised so history still
+   * says who printed something after the student has been removed.
+   */
+  studentName: string | null
   printedAt: string
   createdAt: string
 }
@@ -194,6 +218,8 @@ export interface ManualPrintInput {
 export interface PrintQuery {
   source?: PrintSource | null
   fileId?: number | null
+  /** Restrict to prints attributed to this student. */
+  studentId?: number | null
   search?: string
   from?: string | null
   to?: string | null
@@ -218,6 +244,8 @@ export interface RecordPrintInput {
   /** Preferred for app-generated notes so they stay translatable. */
   noteKey?: NoteKey | null
   noteParams?: MessageParams | null
+  /** Who this print is for. Defaults to whoever is currently using the app. */
+  studentId?: number | null
   printedAt?: string | null
   /** Dedupe key, e.g. `spooler:<recordId>`. */
   externalId?: string | null
@@ -462,6 +490,18 @@ export interface PrintTrackerApi {
     inspectBackup(path: string): Promise<RestoreInspection>
     restoreBackup(path: string): Promise<RestoreReport>
     pickBackupFile(): Promise<string | null>
+  }
+  students: {
+    list(): Promise<Student[]>
+    add(name: string): Promise<Student>
+    rename(id: number, name: string): Promise<Student>
+    remove(id: number): Promise<void>
+    /**
+     * Who is using the app right now. Held in the main process so that prints
+     * detected by the watcher or the spooler are attributed to them too.
+     */
+    current(): Promise<number | null>
+    select(id: number | null): Promise<number | null>
   }
   events: {
     onFilesChanged(cb: () => void): () => void

@@ -56,6 +56,14 @@ export const IPC = {
     restoreBackup: 'app:restore-backup',
     pickBackupFile: 'app:pick-backup-file'
   },
+  students: {
+    list: 'students:list',
+    add: 'students:add',
+    rename: 'students:rename',
+    remove: 'students:remove',
+    current: 'students:current',
+    select: 'students:select'
+  },
   events: {
     filesChanged: 'event:files-changed',
     printRecorded: 'event:print-recorded',

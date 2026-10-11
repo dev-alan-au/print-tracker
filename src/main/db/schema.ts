@@ -5,7 +5,7 @@
  * Never edit an existing entry once it has shipped - append a new one instead.
  */
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export const MIGRATIONS: readonly string[] = [
   /* v0 -> v1 : initial schema */
@@ -88,5 +88,26 @@ export const MIGRATIONS: readonly string[] = [
      older snapshot restores cleanly with the notes simply absent. */
   `
   ALTER TABLE files ADD COLUMN notes TEXT;
+  `,
+
+  /* v4 -> v5 : students, and who a print belongs to.
+
+     `student_name` is deliberately denormalised alongside the id, the same way
+     `document_name` already is for files: removing a student must not erase the
+     fact that a print happened, and the history should still be able to say who
+     it was for. `ON DELETE SET NULL` is what detaches the id, and the name is
+     what survives.
+
+     The unique name is COLLATE NOCASE so a class list cannot end up holding
+     both "Alice" and "alice", which would be indistinguishable in the picker. */
+  `
+  CREATE TABLE IF NOT EXISTS students (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT    NOT NULL COLLATE NOCASE UNIQUE,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+  ALTER TABLE print_events ADD COLUMN student_id   INTEGER REFERENCES students(id) ON DELETE SET NULL;
+  ALTER TABLE print_events ADD COLUMN student_name TEXT;
+  CREATE INDEX IF NOT EXISTS idx_print_events_student ON print_events(student_id);
   `
 ]

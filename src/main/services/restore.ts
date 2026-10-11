@@ -18,6 +18,17 @@ const ALIAS = 'pt_restore_candidate'
 const REQUIRED_TABLES = ['folders', 'files', 'print_events', 'settings'] as const
 
 /**
+ * Tables that a snapshot may or may not have.
+ *
+ * A snapshot taken before students existed is still a perfectly good snapshot,
+ * so requiring it would break the promise that older backups restore. When the
+ * candidate has no such table, the live one is left completely alone rather
+ * than being cleared to match - rolling back should not quietly delete a
+ * student list that the snapshot was taken before knowing about.
+ */
+const OPTIONAL_TABLES = ['students'] as const
+
+/**
  * Columns the copy depends on. A snapshot missing these cannot be restored,
  * and saying so up front beats failing halfway through with a SQLite message.
  */
@@ -25,11 +36,12 @@ const REQUIRED_COLUMNS: Record<string, readonly string[]> = {
   folders: ['id', 'path', 'name'],
   files: ['id', 'folder_id', 'path', 'name'],
   print_events: ['id', 'source', 'printed_at'],
-  settings: ['key', 'value']
+  settings: ['key', 'value'],
+  students: ['id', 'name']
 }
 
 /** Parents before children, so foreign keys hold throughout the copy. */
-const COPY_ORDER = ['folders', 'files', 'print_events', 'settings'] as const
+const COPY_ORDER = ['students', 'folders', 'files', 'print_events', 'settings'] as const
 
 function quoted(name: string): string {
   return `"${name.replace(/"/g, '""')}"`
@@ -104,16 +116,12 @@ export class RestoreService {
         problems.push('corrupt')
       }
 
-      const present = new Set(
-        this.db
-          .all<{ name: string }>(`SELECT name FROM ${ALIAS}.sqlite_master WHERE type = 'table'`)
-          .map((row) => row.name)
-      )
+      const present = this.tablesIn(ALIAS)
       const missingTables = REQUIRED_TABLES.filter((table) => !present.has(table))
       if (missingTables.length > 0) problems.push('missingTables')
 
       const missingColumns: string[] = []
-      for (const table of REQUIRED_TABLES) {
+      for (const table of [...REQUIRED_TABLES, ...OPTIONAL_TABLES]) {
         if (!present.has(table)) continue
         const columns = new Set(this.columnsOf(ALIAS, table))
         for (const column of REQUIRED_COLUMNS[table]) {
@@ -171,8 +179,13 @@ export class RestoreService {
     let restored: ResetCounts = { folders: 0, files: 0, prints: 0 }
     this.db.run(`ATTACH DATABASE ? AS ${ALIAS}`, [inspection.path])
     try {
+      const present = this.tablesIn(ALIAS)
       this.db.transaction(() => {
         for (const table of [...COPY_ORDER].reverse()) {
+          // Matched to the copy below: a table the snapshot predates is left
+          // untouched rather than cleared, so restoring an old backup does not
+          // quietly empty something the snapshot never knew about.
+          if (!present.has(table)) continue
           this.db.run(`DELETE FROM ${quoted(table)}`)
         }
         // The snapshot carries explicit ids, and AUTOINCREMENT lifts the
@@ -184,8 +197,12 @@ export class RestoreService {
           /* no AUTOINCREMENT tables */
         }
 
-        for (const table of COPY_ORDER) this.copyTable(table)
-
+        for (const table of COPY_ORDER) {
+          // An optional table the snapshot predates is skipped entirely, so the
+          // live one is neither cleared nor replaced.
+          if (!present.has(table)) continue
+          this.copyTable(table)
+        }
         restored = {
           folders: this.count('main', 'folders'),
           files: this.count('main', 'files'),
@@ -218,6 +235,15 @@ export class RestoreService {
     const list = shared.map(quoted).join(', ')
     this.db.run(
       `INSERT INTO ${quoted(table)} (${list}) SELECT ${list} FROM ${ALIAS}.${quoted(table)}`
+    )
+  }
+
+  /** Names of the tables a database actually contains. */
+  private tablesIn(schema: string): Set<string> {
+    return new Set(
+      this.db
+        .all<{ name: string }>(`SELECT name FROM ${schema}.sqlite_master WHERE type = 'table'`)
+        .map((row) => row.name)
     )
   }
 

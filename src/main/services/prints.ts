@@ -26,6 +26,8 @@ interface EventRow {
   note: string | null
   noteKey: string | null
   noteParams: string | null
+  studentId: number | null
+  studentName: string | null
   printedAt: string
   createdAt: string
 }
@@ -55,6 +57,8 @@ const SELECT_EVENT = `
          p.note,
          p.note_key      AS noteKey,
          p.note_params   AS noteParams,
+         p.student_id    AS studentId,
+         p.student_name  AS studentName,
          p.printed_at    AS printedAt,
          p.created_at    AS createdAt
   ${FROM_EVENT}
@@ -83,6 +87,8 @@ function mapEvent(row: EventRow): PrintEvent {
     note: row.note,
     noteKey: (row.noteKey as PrintEvent['noteKey']) ?? null,
     noteParams: parseParams(row.noteParams),
+    studentId: row.studentId === null ? null : Number(row.studentId),
+    studentName: row.studentName,
     printedAt: row.printedAt,
     createdAt: row.createdAt
   }
@@ -121,7 +127,31 @@ const HISTORY_DAYS = 14
 const ECHO_WINDOW_MS = 60_000
 
 export class PrintService {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    /**
+     * Who is using the app right now, read at the moment a print is recorded.
+     *
+     * A provider rather than a plain value because the watcher and the spooler
+     * record prints on their own schedule, long after whatever set the
+     * selection, and because the person at the keyboard can change while the
+     * app is running.
+     */
+    private readonly currentStudentId: () => number | null = () => null
+  ) {}
+
+  /**
+   * The student a print belongs to, with the name captured alongside the id.
+   * A selection that no longer exists is recorded as no student rather than
+   * being allowed to fail the print.
+   */
+  private resolveStudent(explicit?: number | null): { id: number | null; name: string | null } {
+    const id = explicit ?? this.currentStudentId()
+    if (id === null || id === undefined) return { id: null, name: null }
+
+    const row = this.db.get<{ name: string }>('SELECT name FROM students WHERE id = ?', [id])
+    return row ? { id, name: row.name } : { id: null, name: null }
+  }
 
   getById(id: number): PrintEvent | undefined {
     const row = this.db.get<EventRow>(`${SELECT_EVENT} WHERE p.id = ?`, [id])
@@ -157,6 +187,7 @@ export class PrintService {
 
     const printedAt = isValidIso(input.printedAt) ? input.printedAt : nowIso()
     const copies = Math.max(1, Math.round(Number(input.copies ?? 1)) || 1)
+    const student = this.resolveStudent(input.studentId)
 
     let insertedId: number
     try {
@@ -164,8 +195,8 @@ export class PrintService {
         `INSERT INTO print_events
            (file_id, source, printer, document_name, copies, pages,
             user_name, status, note, note_key, note_params,
-            external_id, printed_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            external_id, student_id, student_name, printed_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           fileId,
           toSource(input.source),
@@ -179,6 +210,8 @@ export class PrintService {
           input.noteKey ?? null,
           input.noteParams ? JSON.stringify(input.noteParams) : null,
           input.externalId ?? null,
+          student.id,
+          student.name,
           printedAt,
           nowIso()
         ]
@@ -303,6 +336,10 @@ export class PrintService {
     if (query.fileId !== undefined && query.fileId !== null) {
       where.push('p.file_id = ?')
       params.push(query.fileId)
+    }
+    if (query.studentId !== undefined && query.studentId !== null) {
+      where.push('p.student_id = ?')
+      params.push(query.studentId)
     }
     if (query.from && isValidIso(query.from)) {
       where.push('p.printed_at >= ?')
