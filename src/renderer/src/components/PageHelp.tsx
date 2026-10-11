@@ -11,6 +11,7 @@ const HELP_KEYS = {
   folders: 'help.folders',
   files: 'help.files',
   history: 'help.history',
+  students: 'help.students',
   query: 'help.query',
   settings: 'help.settings'
 } as const satisfies Record<string, MessageKey>

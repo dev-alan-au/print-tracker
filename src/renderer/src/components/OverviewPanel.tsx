@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Page, ToastMessage, TrackedFile } from '@shared/types'
+import type { Page, Student, ToastMessage, TrackedFile } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatRelative } from '../lib/format'
 import PageHelp from './PageHelp'
@@ -9,15 +9,21 @@ const LIST_LIMIT = 500
 /**
  * The default screen: two lists answering "what has been printed, and what has
  * not". Deliberately read-only - the Files screen is where you act on a file.
+ *
+ * Both lists belong to the student using the app, so "not printed" means not
+ * printed by them.
  */
 export default function OverviewPanel({
+  student,
   refreshToken,
   onToast
 }: {
+  student: Student | null
   refreshToken: number
   onToast: (toast: ToastMessage) => void
 }) {
   const { t, tn, locale } = useI18n()
+  const studentId = student?.id ?? null
   const [printed, setPrinted] = useState<Page<TrackedFile>>({ items: [], total: 0 })
   const [notPrinted, setNotPrinted] = useState<Page<TrackedFile>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
@@ -37,6 +43,7 @@ export default function OverviewPanel({
     try {
       const [printedPage, unprintedPage] = await Promise.all([
         window.api.files.list({
+          studentId,
           search: debouncedSearch,
           printed: 'printed',
           sort: 'lastPrinted',
@@ -44,6 +51,7 @@ export default function OverviewPanel({
           limit: LIST_LIMIT
         }),
         window.api.files.list({
+          studentId,
           search: debouncedSearch,
           printed: 'unprinted',
           sort: 'name',
@@ -58,7 +66,7 @@ export default function OverviewPanel({
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, onToast, refreshToken])
+  }, [studentId, debouncedSearch, onToast, refreshToken])
 
   useEffect(() => {
     void load()
@@ -76,6 +84,7 @@ export default function OverviewPanel({
             {loading
               ? t('overview.loading')
               : t('overview.summary', { printed: printed.total, total })}
+            {student ? ` · ${t('overview.forStudent', { name: student.name })}` : ''}
             {term ? ` · ${t('overview.filtered', { term })}` : ''}
           </p>
           <PageHelp page="overview" />

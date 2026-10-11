@@ -123,6 +123,45 @@ the renderer is not the only way to reach the IPC channel, and a silently
 truncated note would be worse than a refused one. Whitespace-only input clears
 the note rather than storing blanks.
 
+## Who is using the app
+
+Every screen that shows prints has to answer "whose?", so Print Tracker asks
+first: a picker replaces the app on launch until a student is chosen, and the
+sidebar shows who it is with a **Change** link that reopens the same picker.
+
+A student is a name. Nothing else - no class, no enrolment number, no contact
+details, because anything more turns a classroom helper into a student
+information system, with obligations this app cannot meet.
+
+A print is attributed to whoever was using the app when it was recorded. That
+includes prints found by the watcher and the spooler, which happen while nobody
+is looking at the screen: the current student is held in the **main process** for
+exactly that reason, rather than in the window.
+
+| Follows the student                                                      | Stays shared                       |
+| ------------------------------------------------------------------------ | ---------------------------------- |
+| Print history, and the count beside its nav item                         | The folder list and the file index |
+| Files: the print count, printed / not printed, and both sort orders       | The files themselves               |
+| Overview: both lists and the summary line                                |                                    |
+| Dashboard: every print figure, the charts and the recent list            | Dashboard's folder and file totals |
+
+So "not printed" means **not printed by them**, and the same file can be printed
+for one student and unprinted for another.
+
+Attribution is stored as both an id and the name as it was at the time. Two
+consequences, both deliberate:
+
+- **Removing a student does not remove their history.** The events survive with
+their id set to `NULL` and their name intact, so old records still say who they
+were for. The confirmation dialog says so too, because "Delete" would otherwise
+read as "delete their records as well".
+- **Renaming does not rewrite the past.** An event keeps the name it was
+recorded under, so a rename cannot retroactively attribute an old print to a
+different person.
+
+Names are unique case-insensitively, so the list cannot hold both "Alice" and
+"alice" and leave you choosing between two identical rows.
+
 ## Requirements
 
 - Node.js **20.19+ or 22.12+** (developed on Node 22)
@@ -169,13 +208,31 @@ Handy on a machine you cannot look at directly (remote box, CI, bug report).
 Because screenshots are useless for anything behind a click or a keystroke, two
 more variables drive the UI while the shots are taken:
 
-| Variable                 | Effect                                                                     |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `PT_DEBUG_SEARCH=<term>` | Types the term into the search box on the Overview and Files screens.       |
-| `PT_DEBUG_RESET=open`    | Opens the reset dialog on the Settings screen.                              |
-| `PT_DEBUG_RESET=apply`   | Also types the confirmation and clicks through, performing a real reset.    |
-| `PT_DEBUG_RESTORE=<row>` | Opens the restore dialog for that snapshot row (0 is the newest).           |
-| `PT_DEBUG_HELP=1`        | Expands the "what is this page?" explainer on every screen.                 |
+| Variable                       | Effect                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `PT_DEBUG_SEARCH=<term>`       | Types the term into the search box on the Overview and Files screens.       |
+| `PT_DEBUG_RESET=open`          | Opens the reset dialog on the Settings screen.                              |
+| `PT_DEBUG_RESET=apply`         | Also types the confirmation and clicks through, performing a real reset.    |
+| `PT_DEBUG_RESTORE=<row>`       | Opens the restore dialog for that snapshot row (0 is the newest).           |
+| `PT_DEBUG_HELP=1`              | Expands the "what is this page?" explainer on every screen.                 |
+| `PT_DEBUG_SELECT=<n>`          | Ticks the first `n` rows on the Files screen.                               |
+| `PT_DEBUG_PRINT=1`             | Opens the print dialog for them; `=apply` also presses Print.               |
+| `PT_DEBUG_NOTES=open`          | Opens the note dialog for the first file; `=apply` also saves it.           |
+| `PT_DEBUG_FILTER=<value>`      | Selects that option in the folder filter.                                   |
+| `PT_DEBUG_DRAG=<column>,<px>`  | Drags a column edge, to check the widths stick.                             |
+| `PT_DEBUG_STUDENT=<name>`      | Answers the student picker at launch, creating the student if needed.       |
+| `PT_DEBUG_STUDENT_UI=picker`   | Opens the sidebar switcher over the first screen.                           |
+| `PT_DEBUG_STUDENT_UI=rename`   | Opens the rename dialog on the Students screen.                             |
+
+Without `PT_DEBUG_STUDENT` every screenshot shows the student picker instead of
+the app, since nothing behind it can be reached until somebody is chosen. Running
+against seeded data is often what you want:
+
+```bash
+npm run seed:demo                              # rebuild /tmp/print-tracker-demo-data
+PT_DEBUG=1 PT_DEBUG_STUDENT=Lena PT_DEBUG_SHOT=/tmp/ui.png \
+  npx electron --user-data-dir=/tmp/print-tracker-demo-data .
+```
 
 ## Windows print spooler setup
 

@@ -76,7 +76,8 @@ const api: PrintTrackerApi = {
     addManual: (input: ManualPrintInput) =>
       ipcRenderer.invoke(IPC.prints.addManual, input) as Promise<PrintEvent>,
     remove: (id: number) => ipcRenderer.invoke(IPC.prints.remove, id) as Promise<void>,
-    stats: () => ipcRenderer.invoke(IPC.prints.stats) as Promise<DashboardStats>
+    stats: (studentId?: number | null) =>
+      ipcRenderer.invoke(IPC.prints.stats, studentId) as Promise<DashboardStats>
   },
   spooler: {
     status: () => ipcRenderer.invoke(IPC.spooler.status) as Promise<SpoolerStatus>,

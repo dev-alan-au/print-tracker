@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Page, PrintEvent, PrintSource, ToastMessage } from '@shared/types'
+import type { Page, PrintEvent, PrintSource, Student, ToastMessage } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
@@ -7,15 +7,19 @@ import PageHelp from './PageHelp'
 import SourceBadge from './SourceBadge'
 
 export default function HistoryPanel({
+  student,
   refreshToken,
   onChanged,
   onToast
 }: {
+  /** Whose prints are listed. Everyone's would mix a class together. */
+  student: Student | null
   refreshToken: number
   onChanged: () => void
   onToast: (toast: ToastMessage) => void
 }) {
   const { t, tn, locale, note: noteText } = useI18n()
+  const studentId = student?.id ?? null
   const [data, setData] = useState<Page<PrintEvent>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -33,6 +37,7 @@ export default function HistoryPanel({
     try {
       setData(
         await window.api.prints.list({
+          studentId,
           source: source === 'all' ? null : source,
           search: debouncedSearch,
           limit: 500
@@ -43,7 +48,7 @@ export default function HistoryPanel({
     } finally {
       setLoading(false)
     }
-  }, [source, debouncedSearch, onToast, refreshToken])
+  }, [studentId, source, debouncedSearch, onToast, refreshToken])
 
   useEffect(() => {
     void load()
@@ -65,6 +70,7 @@ export default function HistoryPanel({
           <h1>{t('history.title')}</h1>
           <p>
             {tn(data.total, 'history.count.one', 'history.count.other')}
+            {student ? ` · ${t('overview.forStudent', { name: student.name })}` : ''}
             {loading ? ` · ${t('common.refreshing')}` : ''}
           </p>
           <PageHelp page="history" />
@@ -113,6 +119,7 @@ export default function HistoryPanel({
                 <tr>
                   <th>{t('history.table.printed')}</th>
                   <th>{t('history.table.document')}</th>
+                  <th>{t('history.table.student')}</th>
                   <th>{t('history.table.source')}</th>
                   <th>{t('history.table.printer')}</th>
                   <th className="num">{t('history.table.copies')}</th>
@@ -138,6 +145,9 @@ export default function HistoryPanel({
                         </div>
                         {event.filePath ? <div className="cell-sub">{event.filePath}</div> : null}
                         {description ? <div className="cell-sub">{description}</div> : null}
+                      </td>
+                      <td className="cell-sub">
+                        {event.studentName ?? t('common.emptyValue')}
                       </td>
                       <td>
                         <SourceBadge source={event.source} />

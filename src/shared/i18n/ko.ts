@@ -16,8 +16,9 @@ export const ko: Catalog = {
   'nav.folders': '폴더',
   'nav.files': '파일',
   'nav.history': '인쇄 기록',
-  'nav.settings': '설정',
+  'nav.students': '학생',
   'nav.query': '쿼리',
+  'nav.settings': '설정',
 
   'sidebar.spoolerMonitoring': '스풀러 모니터링 중',
   'sidebar.spoolerIdle': '스풀러 대기 중',
@@ -72,6 +73,37 @@ export const ko: Catalog = {
   'source.spooler': '스풀러',
   'source.manual': '수동',
   'source.app': '앱에서 인쇄',
+
+  /* ------------------------------------------------------------ students */
+
+  'students.title': '학생',
+  'students.subtitle': '인쇄 기록이 귀속되는 사람입니다.',
+  'students.add': '추가',
+  'students.namePlaceholder': '학생 이름',
+  'students.table.name': '이름',
+  'students.table.prints': '인쇄',
+  'students.table.since': '추가일',
+  'students.rename': '이름 변경',
+  'students.never': '인쇄 없음',
+  'students.emptyTitle': '학생이 없습니다',
+  'students.emptyBody': '인쇄를 기록하기 전에 학생을 먼저 추가하세요.',
+  'students.confirmRemove':
+    '“{name}” 학생을 삭제할까요?\n\n인쇄 기록은 그대로 유지되며, 누구의 인쇄였는지도 계속 남습니다.',
+  'students.toast.added': '{name} 학생을 추가했습니다.',
+  'students.toast.renamed': '{name} 이름으로 변경했습니다.',
+  'students.toast.removed': '{name} 학생을 삭제했습니다.',
+
+  'gate.title': '누가 Print Tracker를 사용하나요?',
+  'gate.intro':
+    '모든 인쇄는 앱을 사용 중인 학생에게 기록됩니다. 계속하려면 학생을 선택하세요.',
+  'gate.createFirst': '시작하려면 학생을 추가하세요',
+  'gate.add': '추가하고 계속',
+  'gate.cancel': '취소',
+  'sidebar.student': '학생',
+  'sidebar.changeStudent': '변경',
+
+  'history.table.student': '학생',
+  'overview.forStudent': '{name} 기준',
 
   /* -------------------------------------------------------------- printing */
   'print.title': '파일 인쇄',
@@ -289,6 +321,9 @@ export const ko: Catalog = {
   'query.error.title': '실행 실패',
   'query.error.readOnly':
     '읽기 전용 모드에서는 SELECT, WITH, EXPLAIN, PRAGMA, VALUES만 실행할 수 있습니다.',
+
+  'help.students':
+    '인쇄 기록이 귀속되는 사람입니다. 학생은 이름 하나만 가집니다.\n\n인쇄는 그 시점에 앱을 사용 중이던 학생에게 기록되므로, 앱은 시작할 때 어떤 학생인지 물어봅니다. 사이드바 아래에서 언제든지 바꿀 수 있습니다.\n\n학생을 바꾸면 보이는 내용도 바뀝니다. 개요, 파일 목록, 인쇄 기록 모두 그 학생의 인쇄만 보여줍니다.\n\n학생을 삭제해도 기록은 사라지지 않습니다. 지난 인쇄에는 기록 당시의 이름이 남아 있어 기록이 그대로 이해됩니다.',
 
   /* ------------------------------------------------------------- settings */
   'settings.title': '설정',

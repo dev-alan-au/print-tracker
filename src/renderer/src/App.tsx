@@ -5,6 +5,7 @@ import type {
   AppTheme,
   DashboardStats,
   SpoolerStatus,
+  Student,
   ToastMessage
 } from '@shared/types'
 import Dashboard from './components/Dashboard'
@@ -14,6 +15,8 @@ import HistoryPanel from './components/HistoryPanel'
 import OverviewPanel from './components/OverviewPanel'
 import QueryPanel from './components/QueryPanel'
 import SettingsPanel from './components/SettingsPanel'
+import StudentGate from './components/StudentGate'
+import StudentsPanel from './components/StudentsPanel'
 import Toasts, { type Toast } from './components/Toasts'
 import { I18nProvider, createI18n } from './i18n'
 import {
@@ -24,7 +27,15 @@ import {
   writeCachedTheme
 } from './lib/preferences'
 
-type TabId = 'overview' | 'dashboard' | 'folders' | 'files' | 'history' | 'query' | 'settings'
+type TabId =
+  | 'overview'
+  | 'dashboard'
+  | 'folders'
+  | 'files'
+  | 'history'
+  | 'students'
+  | 'query'
+  | 'settings'
 
 const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
   { id: 'overview', labelKey: 'nav.overview', icon: '◉' },
@@ -32,6 +43,7 @@ const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
   { id: 'folders', labelKey: 'nav.folders', icon: '▤' },
   { id: 'files', labelKey: 'nav.files', icon: '▦' },
   { id: 'history', labelKey: 'nav.history', icon: '⎙' },
+  { id: 'students', labelKey: 'nav.students', icon: '☺' },
   { id: 'query', labelKey: 'nav.query', icon: '▣' },
   { id: 'settings', labelKey: 'nav.settings', icon: '⚙' }
 ]
@@ -46,7 +58,78 @@ export default function App() {
   const [theme, setTheme] = useState<AppTheme>(() => readCachedTheme() ?? 'light')
   const [toasts, setToasts] = useState<Toast[]>([])
 
+  /**
+   * Who is using the app. The id comes from the main process, which needs it to
+   * attribute prints it detects on its own; the list is kept here so the row can
+   * be looked up and so a rename or a removal shows up without a reload.
+   *
+   * The chosen student is derived from both rather than stored, so removing the
+   * student in use - or restoring a snapshot that no longer has them - puts the
+   * picker back on screen by itself.
+   */
+  const [students, setStudents] = useState<Student[]>([])
+  const [currentStudentId, setCurrentStudentId] = useState<number | null>(null)
+  const [studentReady, setStudentReady] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
   const refresh = useCallback(() => setRefreshToken((value) => value + 1), [])
+
+  const currentStudent = useMemo(
+    () => students.find((student) => student.id === currentStudentId) ?? null,
+    [students, currentStudentId]
+  )
+
+  const reloadStudents = useCallback(async () => {
+    const list = await window.api.students.list()
+    setStudents(list)
+    return list
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const [list, current] = await Promise.all([
+          window.api.students.list(),
+          window.api.students.current()
+        ])
+        if (cancelled) return
+        setStudents(list)
+        setCurrentStudentId(current)
+      } catch {
+        // Nothing selected is the right fallback: the picker is shown next.
+      } finally {
+        if (!cancelled) setStudentReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // The student in use has gone - deleted here, or replaced by a restore. Stop
+  // attributing prints to an id that no longer exists, and ask again.
+  useEffect(() => {
+    if (!studentReady) return
+    if (currentStudentId !== null && !students.some((entry) => entry.id === currentStudentId)) {
+      setCurrentStudentId(null)
+      void window.api.students.select(null)
+    }
+  }, [students, currentStudentId, studentReady])
+
+  const pickStudent = useCallback(
+    async (id: number) => {
+      await window.api.students.select(id)
+      // Re-listed rather than assumed: the picker can create the student it is
+      // picking, and the counts on the cards move as prints are recorded.
+      const list = await reloadStudents()
+      setCurrentStudentId(list.some((entry) => entry.id === id) ? id : null)
+      setPickerOpen(false)
+      // Every screen shows the new student's figures, so all of them reload.
+      refresh()
+    },
+    [reloadStudents, refresh]
+  )
 
   const locale: Locale = useMemo(
     () => resolveLocale(language, typeof navigator === 'undefined' ? 'en' : navigator.language),
@@ -137,7 +220,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     void window.api.prints
-      .stats()
+      .stats(currentStudentId)
       .then((next) => {
         if (!cancelled) setStats(next)
       })
@@ -145,7 +228,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [refreshToken])
+  }, [refreshToken, currentStudentId])
 
   const counts: Record<TabId, number | null> = {
     overview: null,
@@ -153,6 +236,7 @@ export default function App() {
     folders: stats?.folderCount ?? null,
     files: stats?.fileCount ?? null,
     history: stats?.printCount ?? null,
+    students: students.length,
     query: null,
     settings: null
   }
@@ -184,6 +268,27 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        {/* Whose prints everything is showing. Clicking switches student. */}
+        {currentStudent ? (
+          <div className="sidebar-student">
+            <span className="sidebar-student-label">{i18n.t('sidebar.student')}</span>
+            <button
+              type="button"
+              className="sidebar-student-btn"
+              title={i18n.t('sidebar.changeStudent')}
+              onClick={() => setPickerOpen(true)}
+            >
+              <span className="student-initial" aria-hidden="true">
+                {currentStudent.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="grow">{currentStudent.name}</span>
+              <span className="sidebar-student-change">
+                {i18n.t('sidebar.changeStudent')}
+              </span>
+            </button>
+          </div>
+        ) : null}
 
         <div className="sidebar-footer">
           <select
@@ -222,17 +327,40 @@ export default function App() {
 
       <main className="main">
         {tab === 'overview' ? (
-          <OverviewPanel refreshToken={refreshToken} onToast={addToast} />
+          <OverviewPanel
+            student={currentStudent}
+            refreshToken={refreshToken}
+            onToast={addToast}
+          />
         ) : null}
-        {tab === 'dashboard' ? <Dashboard stats={stats} onNavigate={setTab} /> : null}
+        {tab === 'dashboard' ? (
+          <Dashboard student={currentStudent} stats={stats} onNavigate={setTab} />
+        ) : null}
         {tab === 'folders' ? (
           <FoldersPanel refreshToken={refreshToken} onChanged={refresh} onToast={addToast} />
         ) : null}
         {tab === 'files' ? (
-          <FilesPanel refreshToken={refreshToken} onChanged={refresh} onToast={addToast} />
+          <FilesPanel
+            student={currentStudent}
+            refreshToken={refreshToken}
+            onChanged={refresh}
+            onToast={addToast}
+          />
         ) : null}
         {tab === 'history' ? (
-          <HistoryPanel refreshToken={refreshToken} onChanged={refresh} onToast={addToast} />
+          <HistoryPanel
+            student={currentStudent}
+            refreshToken={refreshToken}
+            onChanged={refresh}
+            onToast={addToast}
+          />
+        ) : null}
+        {tab === 'students' ? (
+          <StudentsPanel
+            refreshToken={refreshToken}
+            onChanged={refresh}
+            onToast={addToast}
+          />
         ) : null}
         {tab === 'query' ? <QueryPanel onToast={addToast} /> : null}
         {tab === 'settings' ? (
@@ -246,10 +374,31 @@ export default function App() {
           />
         ) : null}
       </main>
-
-      <Toasts toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 
-  return <I18nProvider locale={locale}>{shell}</I18nProvider>
+  return (
+    <I18nProvider locale={locale}>
+      {/*
+        Nothing at all until we know who is using the app: rendering the shell
+        first would flash figures that belong to every student.
+      */}
+      {!studentReady ? null : currentStudent ? (
+        shell
+      ) : (
+        <StudentGate students={students} onPick={pickStudent} />
+      )}
+
+      {/* The same card, on top of the app, when switching from the sidebar. */}
+      {studentReady && pickerOpen && currentStudent ? (
+        <StudentGate
+          students={students}
+          onPick={pickStudent}
+          onCancel={() => setPickerOpen(false)}
+        />
+      ) : null}
+
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+    </I18nProvider>
+  )
 }

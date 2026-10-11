@@ -3,6 +3,7 @@ import type {
   FileQuery,
   FolderDirectory,
   Page,
+  Student,
   ToastMessage,
   TrackedFile,
   TrackedFolder
@@ -36,15 +37,19 @@ const FILE_COLUMNS: { key: string; defaultWidth?: number }[] = [
 const FILE_COLUMN_KEYS = FILE_COLUMNS.map((column) => column.key)
 
 export default function FilesPanel({
+  student,
   refreshToken,
   onChanged,
   onToast
 }: {
+  /** Whose print figures the table shows. The files themselves are everyone's. */
+  student: Student | null
   refreshToken: number
   onChanged: () => void
   onToast: (toast: ToastMessage) => void
 }) {
   const { t, tn, locale } = useI18n()
+  const studentId = student?.id ?? null
   const [folders, setFolders] = useState<TrackedFolder[]>([])
   const [data, setData] = useState<Page<TrackedFile>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
@@ -94,6 +99,7 @@ export default function FilesPanel({
         window.api.folders.list(),
         window.api.files.list({
           ...scopeQuery,
+          studentId,
           search: debouncedSearch,
           printed: printFilter === 'all' ? undefined : printFilter,
           sort,
@@ -110,7 +116,7 @@ export default function FilesPanel({
     } finally {
       setLoading(false)
     }
-  }, [scope, debouncedSearch, printFilter, sort, direction, onToast, refreshToken])
+  }, [scope, studentId, debouncedSearch, printFilter, sort, direction, onToast, refreshToken])
 
   useEffect(() => {
     void load()

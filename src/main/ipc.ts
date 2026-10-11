@@ -142,7 +142,7 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     ctx.prints.remove(asId(id))
   })
 
-  ipcMain.handle(IPC.prints.stats, () => ctx.prints.stats())
+  ipcMain.handle(IPC.prints.stats, () => ctx.prints.stats(ctx.currentStudent()))
 
   /* ------------------------------------------------------------- spooler */
 

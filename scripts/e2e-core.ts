@@ -1234,6 +1234,51 @@ async function main(): Promise<void> {
     students.remove(nobody.id)
   })
 
+  check('dashboard figures follow the student too', () => {
+    const alice = students.list().find((student) => student.name === 'Alice Smith')
+    const fresh = students.add('Has Not Printed')
+    assert(alice, 'expected Alice')
+
+    const hers = scopedPrints.stats(alice.id)
+    const theirs = scopedPrints.stats(fresh.id)
+    const everyone = scopedPrints.stats()
+
+    // The dashboard and the history have to agree, or the same numbers tell two
+    // different stories depending on which screen you look at.
+    eq(hers.printCount, scopedPrints.list({ studentId: alice.id }).total, 'total matches the history')
+    eq(
+      hers.printsBySource.reduce((sum, entry) => sum + entry.count, 0),
+      hers.printCount,
+      'the source breakdown adds up to the total'
+    )
+    assert(
+      hers.recent.every((event) => event.studentId === alice.id),
+      'recent activity is hers alone'
+    )
+
+    eq(theirs.printCount, 0, 'a student who has not printed counts zero')
+    eq(theirs.printsToday, 0, 'today')
+    eq(theirs.printsThisWeek, 0, 'this week')
+    eq(theirs.printsBySource.length, 0, 'no sources to break down')
+    eq(theirs.topFiles.length, 0, 'nothing in the top five')
+    eq(
+      theirs.printsByDay.reduce((sum, entry) => sum + entry.count, 0),
+      0,
+      'and an empty chart'
+    )
+
+    // Folders and files are about the library rather than about anybody's
+    // printing, so they stay the same for everyone.
+    eq(theirs.folderCount, everyone.folderCount, 'folders are not per student')
+    eq(theirs.fileCount, everyone.fileCount, 'nor are files')
+    assert(
+      hers.printCount > 0 && hers.printCount < everyone.printCount,
+      'while a student with prints lands between nobody and everybody'
+    )
+
+    students.remove(fresh.id)
+  })
+
   check('deleting a student keeps their prints and the name they had', () => {
     const bob = students.list().find((student) => student.name === 'Bob')
     assert(bob, 'expected Bob')

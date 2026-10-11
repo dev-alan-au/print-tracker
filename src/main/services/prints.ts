@@ -384,22 +384,43 @@ export class PrintService {
     return Number(row?.c ?? 0)
   }
 
-  stats(): DashboardStats {
+  /**
+   * The dashboard's figures.
+   *
+   * Everything about prints follows the student using the app, the same way the
+   * history and the file counts do: a screen that says "as Lena" everywhere else
+   * and then counts the whole class's printing here would be the odd one out.
+   * Folder and file totals are about the library rather than about anybody's
+   * printing, so they stay global.
+   *
+   * The student is an extra predicate on each print query. `and` and `where` are
+   * two forms of the same thing because some of these queries already filter by
+   * date; the parameter is also bound last every time, so the placeholders and
+   * the values cannot drift apart.
+   */
+  stats(studentId: number | null = null): DashboardStats {
     const countOf = (sql: string, params?: (string | number)[]): number =>
       Number(this.db.get<{ c: number }>(sql, params)?.c ?? 0)
 
     const todayStart = startOfLocalDay().toISOString()
     const weekStart = startOfLocalWeek().toISOString()
 
-    const printsToday = countOf('SELECT COUNT(*) AS c FROM print_events WHERE printed_at >= ?', [
-      todayStart
-    ])
-    const printsThisWeek = countOf('SELECT COUNT(*) AS c FROM print_events WHERE printed_at >= ?', [
-      weekStart
-    ])
+    const scopedParams: (string | number)[] = studentId === null ? [] : [studentId]
+    const and = studentId === null ? '' : ' AND p.student_id = ?'
+    const where = studentId === null ? '' : ' WHERE p.student_id = ?'
+
+    const printsToday = countOf(
+      `SELECT COUNT(*) AS c FROM print_events p WHERE p.printed_at >= ?${and}`,
+      [todayStart, ...scopedParams]
+    )
+    const printsThisWeek = countOf(
+      `SELECT COUNT(*) AS c FROM print_events p WHERE p.printed_at >= ?${and}`,
+      [weekStart, ...scopedParams]
+    )
 
     const bySourceRows = this.db.all<{ source: string; c: number }>(
-      'SELECT source, COUNT(*) AS c FROM print_events GROUP BY source'
+      `SELECT p.source AS source, COUNT(*) AS c FROM print_events p${where} GROUP BY p.source`,
+      scopedParams
     )
     const printsBySource = bySourceRows.map((row) => ({
       source: toSource(row.source),
@@ -409,8 +430,8 @@ export class PrintService {
     // Bucket the last 14 days by *local* calendar day.
     const windowStart = startOfLocalDay(addDays(new Date(), -(HISTORY_DAYS - 1))).toISOString()
     const recentTimestamps = this.db.all<{ printedAt: string }>(
-      'SELECT printed_at AS printedAt FROM print_events WHERE printed_at >= ?',
-      [windowStart]
+      `SELECT p.printed_at AS printedAt FROM print_events p WHERE p.printed_at >= ?${and}`,
+      [windowStart, ...scopedParams]
     )
     const buckets = new Map<string, number>()
     for (let offset = 0; offset < HISTORY_DAYS; offset++) {
@@ -429,9 +450,11 @@ export class PrintService {
                 COUNT(*)                                          AS c
            FROM print_events p
            LEFT JOIN files fi ON fi.id = p.file_id
+          ${where}
           GROUP BY COALESCE(p.file_id, -1), COALESCE(p.document_name, fi.name, 'Unknown')
           ORDER BY c DESC, name ASC
-          LIMIT 5`
+          LIMIT 5`,
+        scopedParams
       )
       .map((row) => ({
         fileId: row.fileId === null ? null : Number(row.fileId),
@@ -439,12 +462,12 @@ export class PrintService {
         count: Number(row.c)
       }))
 
-    const recent = this.list({ limit: 8 }).items
+    const recent = this.list({ limit: 8, studentId }).items
 
     return {
       folderCount: countOf('SELECT COUNT(*) AS c FROM folders'),
       fileCount: countOf('SELECT COUNT(*) AS c FROM files WHERE present = 1'),
-      printCount: countOf('SELECT COUNT(*) AS c FROM print_events'),
+      printCount: countOf(`SELECT COUNT(*) AS c FROM print_events p${where}`, scopedParams),
       printsToday,
       printsThisWeek,
       printsByDay,

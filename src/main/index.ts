@@ -58,6 +58,46 @@ function createWindow(): void {
   // actually mounted and received the preload bridge.
   if (process.env['PT_DEBUG']) {
     mainWindow.webContents.on('did-finish-load', () => {
+      // `PT_DEBUG_STUDENT=<name>` answers the picker at launch, creating the
+      // student if the list is empty. Without it every other hook here would be
+      // inspecting the gate rather than the app behind it.
+      const studentChosen = (async (): Promise<void> => {
+        const wanted = process.env['PT_DEBUG_STUDENT']
+        if (!wanted) return
+        // The picker only appears once the renderer has read the student list.
+        await new Promise((resolve) => setTimeout(resolve, 900))
+        try {
+          const outcome: unknown = await mainWindow?.webContents.executeJavaScript(
+            `(async () => {
+               const wanted = ${JSON.stringify(wanted.toLowerCase())}
+               const card = Array.from(document.querySelectorAll('.student-choice')).find(
+                 (element) => (element.textContent || '').toLowerCase().includes(wanted)
+               )
+               if (card) {
+                 card.click()
+                 return 'picked existing'
+               }
+               const input = document.querySelector('#gate-new-student')
+               if (!input) return 'no picker on screen'
+               const setter = Object.getOwnPropertyDescriptor(
+                 window.HTMLInputElement.prototype, 'value'
+               ).set
+               setter.call(input, ${JSON.stringify(wanted)})
+               input.dispatchEvent(new Event('input', { bubbles: true }))
+               await new Promise((resolve) => setTimeout(resolve, 50))
+               const button = document.querySelector('.student-gate .btn.primary')
+               if (!button) return 'no add button'
+               button.click()
+               return 'created'
+             })()`
+          )
+          console.log('[pt-debug] student:', outcome)
+        } catch (error) {
+          console.error('[pt-debug] student selection failed:', error)
+        }
+        await new Promise((resolve) => setTimeout(resolve, 900))
+      })()
+
       // React resolves settings over IPC, so sample the DOM once it has settled.
       setTimeout(() => {
         void mainWindow?.webContents
@@ -91,12 +131,25 @@ function createWindow(): void {
           'folders',
           'files',
           'history',
+          'students',
           'query',
           'settings'
         ]
 
         setTimeout(() => {
           void (async () => {
+            await studentChosen
+
+            // `PT_DEBUG_STUDENT_UI=picker` opens the sidebar switcher over the
+            // first screen; `=rename` opens the rename dialog on the students
+            // screen. Neither is reachable by navigating from a fresh launch.
+            const studentUi = process.env['PT_DEBUG_STUDENT_UI']
+            if (studentUi === 'picker') {
+              await mainWindow?.webContents.executeJavaScript(
+                `document.querySelector('.sidebar-student-btn')?.click()`
+              )
+              await new Promise((resolve) => setTimeout(resolve, 700))
+            }
             // `PT_DEBUG_SEARCH=lib` types a term into the search box before the
             // overview/files shots, so search behaviour can be inspected from a
             // screenshot. React ignores a plain `value =` assignment, so the
@@ -127,6 +180,14 @@ function createWindow(): void {
                 )
                 // Longer than the 250 ms debounce plus the refetch.
                 await new Promise((resolve) => setTimeout(resolve, 900))
+              }
+
+              if (studentUi === 'rename' && tabs[index] === 'students') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `Array.from(document.querySelectorAll('tbody .btn'))
+                     .find((button) => !button.classList.contains('danger'))?.click()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 700))
               }
 
               // `PT_DEBUG_RESET=open` shows the reset dialog on the settings

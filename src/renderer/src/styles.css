@@ -233,6 +233,68 @@ code {
   background: var(--danger);
 }
 
+/* Whose prints the app is showing. Sits above the status footer because it
+   changes what every other screen contains, not just what it looks like. */
+.sidebar-student {
+  padding: 0 2px;
+}
+
+.sidebar-student-label {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-faint);
+  padding: 0 6px 6px;
+}
+
+.sidebar-student-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar-student-btn:hover {
+  border-color: var(--accent);
+}
+
+.sidebar-student-btn .grow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.sidebar-student-change {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+/* The initial stands in for a photo: a name-only list is hard to scan without
+   something to anchor the eye on each row. */
+.student-initial {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* ------------------------------------------------------------------ main */
 
 .main {
@@ -1018,6 +1080,68 @@ input[type='range'] {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Who is using the app. Wider than a normal modal because it is a list of
+   people, and the first thing a new install sees. */
+.student-gate {
+  max-width: 520px;
+}
+
+.gate-intro {
+  margin: 0 0 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.student-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.student-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.student-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.student-choice:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.student-choice .grow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gate-add {
+  margin-top: 16px;
+}
+
+.gate-add label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 /* ----------------------------------------------------------------- misc */

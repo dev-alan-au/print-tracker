@@ -123,6 +123,13 @@ export interface FileQuery {
  *  input, so a crafted IPC call cannot store something longer. */
 export const FILE_NOTES_MAX_LENGTH = 255
 
+/* ---------------------------------------------------------------- students */
+
+/** Longest student name accepted. Shared because the main process enforces it
+ *  and the input needs the same limit, and a name that the field accepts but
+ *  the service rejects is a bug waiting to happen. */
+export const STUDENT_NAME_MAX_LENGTH = 80
+
 /* ---------------------------------------------------------------- printing */
 
 /** How a print job was handed to the operating system. */
@@ -461,7 +468,11 @@ export interface PrintTrackerApi {
     list(query: PrintQuery): Promise<Page<PrintEvent>>
     addManual(input: ManualPrintInput): Promise<PrintEvent>
     remove(id: number): Promise<void>
-    stats(): Promise<DashboardStats>
+    /**
+     * Dashboard figures. The print counts describe the student passed in;
+     * omitting it counts everybody, which only the tests want.
+     */
+    stats(studentId?: number | null): Promise<DashboardStats>
   }
   spooler: {
     status(): Promise<SpoolerStatus>

@@ -13,8 +13,9 @@ export const en = {
   'nav.folders': 'Folders',
   'nav.files': 'Files',
   'nav.history': 'Print history',
-  'nav.settings': 'Settings',
+  'nav.students': 'Students',
   'nav.query': 'Query',
+  'nav.settings': 'Settings',
 
   'sidebar.spoolerMonitoring': 'Spooler monitoring',
   'sidebar.spoolerIdle': 'Spooler idle',
@@ -62,8 +63,10 @@ export const en = {
   'help.query':
     'A tool for advanced users. You type a question in a special language called SQL and the answer appears in a table.\n\nBy default it is allowed to look but not to touch, so it cannot change anything. Only turn read-only off if you know how SQL works, because changes made there are permanent.\n\nIf SQL means nothing to you, you never need this page.',
 
-  'help.settings':
-    'Everything you can change about how Print Tracker behaves.\n\nScreen appearance sets the language and the light or dark colours. Print tracking switches the Windows print log on and off, and only works on Windows. Backups are copies of everything the app has saved, taken automatically each time it starts, and you can make one yourself or go back to an older one.\n\nWatching decides how closely folders are checked for new files. The Danger zone erases everything the app has saved and starts afresh.',
+  'help.students':
+    'The people prints are recorded against. Each student has a name and nothing else.\n\nA print is attributed to whoever was using the app at the time, so the app asks which student you are when it starts. You can switch at any time from the bottom of the sidebar.\n\nSwitching changes what you see: the overview, the file list and the history all show that student own prints and nobody else.\n\nRemoving a student does not remove their history. Past prints keep the name they were recorded under, so the records still make sense.',
+
+  'help.settings':    'Everything you can change about how Print Tracker behaves.\n\nScreen appearance sets the language and the light or dark colours. Print tracking switches the Windows print log on and off, and only works on Windows. Backups are copies of everything the app has saved, taken automatically each time it starts, and you can make one yourself or go back to an older one.\n\nWatching decides how closely folders are checked for new files. The Danger zone erases everything the app has saved and starts afresh.',
 
   'source.watcher': 'Folder watch',
   'source.spooler': 'Spooler',
@@ -108,7 +111,36 @@ export const en = {
   'unit.prints.one': '{count} print',
   'unit.prints.other': '{count} prints',
 
-  /* ------------------------------------------------------------ dashboard */
+  /* ------------------------------------------------------------ students */
+
+  'students.title': 'Students',
+  'students.subtitle': 'The people prints are recorded against.',
+  'students.add': 'Add',
+  'students.namePlaceholder': 'Student name',
+  'students.table.name': 'Name',
+  'students.table.prints': 'Prints',
+  'students.table.since': 'Added',
+  'students.rename': 'Rename',
+  'students.never': 'never printed',
+  'students.emptyTitle': 'No students yet',
+  'students.emptyBody': 'Add a student before recording any prints.',
+  'students.confirmRemove':
+    'Remove "{name}"?\n\nTheir print records are kept, and still show who they were for.',
+  'students.toast.added': 'Added {name}.',
+  'students.toast.renamed': 'Renamed to {name}.',
+  'students.toast.removed': 'Removed {name}.',
+
+  'gate.title': 'Who is using Print Tracker?',
+  'gate.intro':
+    'Every print is recorded against the student using the app, so choose one before carrying on.',
+  'gate.createFirst': 'Add a student to get started',
+  'gate.add': 'Add and continue',
+  'gate.cancel': 'Cancel',
+  'sidebar.student': 'Student',
+  'sidebar.changeStudent': 'Change',
+
+  'history.table.student': 'Student',
+  'overview.forStudent': 'for {name}',
   'dashboard.title': 'Dashboard',
   'dashboard.subtitle': 'A summary of your folders, files and prints.',
   'dashboard.manageFolders': 'Manage folders',

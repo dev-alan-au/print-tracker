@@ -1,9 +1,9 @@
-import type { Student } from '@shared/types'
+import { STUDENT_NAME_MAX_LENGTH, type Student } from '@shared/types'
 import type { Db } from '../db/database'
 import { nowIso } from '../util/time'
 
 /** Names are the whole record, so keep them to something a person can read. */
-const MAX_NAME_LENGTH = 80
+const MAX_NAME_LENGTH = STUDENT_NAME_MAX_LENGTH
 
 interface StudentRow {
   id: number

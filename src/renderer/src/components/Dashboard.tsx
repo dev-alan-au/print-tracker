@@ -1,4 +1,4 @@
-import type { DashboardStats, MessageKey, PrintSource } from '@shared/types'
+import type { DashboardStats, MessageKey, PrintSource, Student } from '@shared/types'
 import { useI18n } from '../i18n'
 import { formatDayLabel, formatRelative } from '../lib/format'
 import PageHelp from './PageHelp'
@@ -21,9 +21,12 @@ const SOURCE_DESCRIPTION_KEYS: Record<PrintSource, MessageKey> = {
 }
 
 export default function Dashboard({
+  student,
   stats,
   onNavigate
 }: {
+  /** Named in the header, because every print figure here is theirs. */
+  student: Student | null
   stats: DashboardStats | null
   onNavigate: (tab: 'folders' | 'files' | 'history') => void
 }) {
@@ -41,7 +44,10 @@ export default function Dashboard({
       <header className="page-header">
         <div>
           <h1>{t('dashboard.title')}</h1>
-          <p>{t('dashboard.subtitle')}</p>
+          <p>
+            {t('dashboard.subtitle')}
+            {student ? ` · ${t('overview.forStudent', { name: student.name })}` : ''}
+          </p>
           <PageHelp page="dashboard" />
         </div>
         <div className="row">
