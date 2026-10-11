@@ -9,6 +9,7 @@ import type {
   RecordPrintInput
 } from '@shared/types'
 import type { Db } from '../db/database'
+import { likeAny } from '../util/sql'
 import { addDays, dayKey, isValidIso, nowIso, startOfLocalDay, startOfLocalWeek } from '../util/time'
 
 interface EventRow {
@@ -92,10 +93,6 @@ function mapEvent(row: EventRow): PrintEvent {
     printedAt: row.printedAt,
     createdAt: row.createdAt
   }
-}
-
-function likePattern(term: string): string {
-  return `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
 }
 
 /** `note_params` is a JSON object; tolerate anything malformed or legacy. */
@@ -350,16 +347,24 @@ export class PrintService {
       params.push(query.to)
     }
     if (query.search && query.search.trim()) {
-      where.push(
-        `(COALESCE(p.document_name, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(fi.name, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(p.printer, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(p.note, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(fo.name, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(fo.path, '') LIKE ? ESCAPE '\\')`
+      // Everything Files searches, so a term that finds a file there also finds
+      // its prints here - plus the fields only a print has. The file's own path
+      // was the one missing: a subfolder name appears nowhere else, so the same
+      // file could be found on one screen and not on the other.
+      const search = likeAny(
+        [
+          'p.document_name',
+          'fi.name',
+          'fi.path',
+          'p.printer',
+          'p.note',
+          'fo.name',
+          'fo.path'
+        ],
+        query.search.trim()
       )
-      const pattern = likePattern(query.search.trim())
-      params.push(pattern, pattern, pattern, pattern, pattern, pattern)
+      where.push(search.sql)
+      params.push(...search.params)
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''

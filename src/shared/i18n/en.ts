@@ -272,7 +272,7 @@ export const en = {
   'history.count.one': '{count} print event',
   'history.count.other': '{count} print events',
   'history.logPrint': '+ Log a print',
-  'history.searchPlaceholder': 'Search document, folder, printer or note…',
+  'history.searchPlaceholder': 'Search document, folder, path, printer or note…',
   'history.allSources': 'All sources',
   'history.loading': 'Loading history…',
   'history.emptyTitle': 'No print events',

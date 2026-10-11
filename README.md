@@ -210,7 +210,7 @@ more variables drive the UI while the shots are taken:
 
 | Variable                       | Effect                                                                     |
 | ------------------------------ | -------------------------------------------------------------------------- |
-| `PT_DEBUG_SEARCH=<term>`       | Types the term into the search box on the Overview and Files screens.       |
+| `PT_DEBUG_SEARCH=<term>`       | Types the term into the search box on Overview, Files and History.          |
 | `PT_DEBUG_RESET=open`          | Opens the reset dialog on the Settings screen.                              |
 | `PT_DEBUG_RESET=apply`         | Also types the confirmation and clicks through, performing a real reset.    |
 | `PT_DEBUG_RESTORE=<row>`       | Opens the restore dialog for that snapshot row (0 is the newest).           |

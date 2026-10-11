@@ -4,6 +4,7 @@ import { basename, dirname, extname, join, relative, sep } from 'node:path'
 import { FILE_NOTES_MAX_LENGTH } from '@shared/types'
 import type { FileQuery, FolderDirectory, Page, TrackedFile } from '@shared/types'
 import type { Db } from '../db/database'
+import { likeAny } from '../util/sql'
 import { nowIso } from '../util/time'
 import type { TrackedFolder } from '@shared/types'
 
@@ -107,10 +108,6 @@ function mapFile(row: FileRow): TrackedFile {
     lastPrintedAt: row.lastPrintedAt,
     notes: row.notes
   }
-}
-
-function likePattern(term: string): string {
-  return `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
 }
 
 /** `report-b.docx` -> `report-b`; leaves extension-less names untouched. */
@@ -297,14 +294,9 @@ export class FileService {
       // The folder's display name and on-disk path are searched alongside the
       // file itself, so typing a folder name ("Client Reports") finds every
       // file inside it even when the path on disk looks nothing like the name.
-      where.push(
-        `(fi.name LIKE ? ESCAPE '\\'
-          OR fi.path LIKE ? ESCAPE '\\'
-          OR COALESCE(fo.name, '') LIKE ? ESCAPE '\\'
-          OR COALESCE(fo.path, '') LIKE ? ESCAPE '\\')`
-      )
-      const pattern = likePattern(query.search.trim())
-      params.push(pattern, pattern, pattern, pattern)
+      const search = likeAny(['fi.name', 'fi.path', 'fo.name', 'fo.path'], query.search.trim())
+      where.push(search.sql)
+      params.push(...search.params)
     }
     if (query.printed === 'printed') {
       where.push(`${src.printedCount} > 0`)

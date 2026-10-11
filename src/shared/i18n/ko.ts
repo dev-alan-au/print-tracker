@@ -275,7 +275,7 @@ export const ko: Catalog = {
   'history.count.one': '인쇄 기록 {count}건',
   'history.count.other': '인쇄 기록 {count}건',
   'history.logPrint': '+ 인쇄 기록 추가',
-  'history.searchPlaceholder': '문서, 폴더, 프린터 또는 메모 검색…',
+  'history.searchPlaceholder': '문서, 폴더, 경로, 프린터 또는 메모 검색…',
   'history.allSources': '모든 방식',
   'history.loading': '기록을 불러오는 중…',
   'history.emptyTitle': '인쇄 기록이 없습니다',

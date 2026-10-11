@@ -338,36 +338,59 @@ async function main(): Promise<void> {
     eq(files.list({ search: 'pt-e2e' }).total, all, 'every file matches on its path')
   })
 
-  check('search finds a Windows-style path by a mid-path fragment', () => {
-    // Reproduces the reported case: the term is in the user name part of the
-    // path, which never shows up in a file name or a watched folder name.
-    db.run('INSERT INTO folders (id, path, name, kind) VALUES (?, ?, ?, ?)', [
-      9001,
-      'C:\\Users\\alan\\Documents',
-      'Documents',
-      'library'
-    ])
-    db.run('INSERT INTO files (id, folder_id, path, name, ext, size) VALUES (?, ?, ?, ?, ?, ?)', [
-      9001,
-      9001,
-      'C:\\Users\\alan\\Documents\\quarterly.pdf',
-      'quarterly.pdf',
-      'pdf',
-      10
-    ])
+  // One fixture for both checks below. The file sits in a subfolder of the
+  // watched folder, so `q1-reports` exists in the file's path and nowhere else -
+  // not in its name, not in the folder's name, and not in the folder's path.
+  db.run('INSERT INTO folders (id, path, name, kind) VALUES (?, ?, ?, ?)', [
+    9001,
+    'C:\\Users\\alan\\Documents',
+    'Documents',
+    'library'
+  ])
+  db.run('INSERT INTO files (id, folder_id, path, name, ext, size) VALUES (?, ?, ?, ?, ?, ?)', [
+    9001,
+    9001,
+    'C:\\Users\\alan\\Documents\\q1-reports\\quarterly.pdf',
+    'quarterly.pdf',
+    'pdf',
+    10
+  ])
 
-    try {
+  try {
+    check('search finds a Windows-style path by a mid-path fragment', () => {
+      // Reproduces the reported case: the term is in the user name part of the
+      // path, which never shows up in a file name or a watched folder name.
       eq(files.list({ search: 'alan' }).total, 1, 'found by the user name in the path')
       eq(files.list({ search: 'ALAN' }).total, 1, 'and case-insensitively')
       // A single backslash, escaped for the SQL pattern under the hood, must
       // still match the single separator in the stored path.
       eq(files.list({ search: 'users\\alan' }).total, 1, 'and with the separator included')
       eq(files.list({ search: 'quarterly' }).total, 1, 'and by the file name as before')
-    } finally {
-      db.run('DELETE FROM files WHERE id = ?', [9001])
-      db.run('DELETE FROM folders WHERE id = ?', [9001])
-    }
-  })
+    })
+
+    check('the history searches the same fields the file list does', () => {
+      // The file's own path was missing from this list, so a term that lived
+      // only there found the file on one screen and nothing at all on the
+      // other - with no error to explain the difference. `q1-reports` is the
+      // term that proves it: a subfolder name, which appears nowhere else.
+      const event = prints.addManual({ fileId: 9001, documentName: 'quarterly.pdf' })
+      try {
+        for (const term of ['alan', 'ALAN', 'users\\alan', 'quarterly', 'documents', 'q1-reports']) {
+          eq(files.list({ search: term }).total, 1, `the file list should match "${term}"`)
+          eq(
+            prints.list({ fileId: 9001, search: term }).total,
+            1,
+            `the history should match "${term}" too`
+          )
+        }
+      } finally {
+        prints.remove(event.id)
+      }
+    })
+  } finally {
+    db.run('DELETE FROM files WHERE id = ?', [9001])
+    db.run('DELETE FROM folders WHERE id = ?', [9001])
+  }
 
   /* ----------------------------------------------- spooler degradation */
 

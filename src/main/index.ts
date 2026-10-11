@@ -151,11 +151,11 @@ function createWindow(): void {
               await new Promise((resolve) => setTimeout(resolve, 700))
             }
             // `PT_DEBUG_SEARCH=lib` types a term into the search box before the
-            // overview/files shots, so search behaviour can be inspected from a
-            // screenshot. React ignores a plain `value =` assignment, so the
-            // native setter is used and an `input` event dispatched.
+            // overview/files/history shots, so search behaviour can be inspected
+            // from a screenshot. React ignores a plain `value =` assignment, so
+            // the native setter is used and an `input` event dispatched.
             const searchTerm = process.env['PT_DEBUG_SEARCH']
-            const searchTabs = new Set(['overview', 'files'])
+            const searchTabs = new Set(['overview', 'files', 'history'])
 
             for (let index = 0; index < tabs.length; index++) {
               if (index > 0) {
