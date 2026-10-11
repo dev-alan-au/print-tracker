@@ -199,7 +199,11 @@ export default function SettingsPanel({
             <div className="note">{t('settings.spooler.unsupported')}</div>
           ) : null}
 
-          {spoolerStatus?.lastError ? <div className="note">{spoolerStatus.lastError}</div> : null}
+          {/* On an unsupported platform the note above already says everything,
+              and the raw error would only repeat it in untranslated English. */}
+          {spoolerStatus?.supported && spoolerStatus.lastError ? (
+            <div className="note">{spoolerStatus.lastError}</div>
+          ) : null}
 
           <div className="row">
             <button
