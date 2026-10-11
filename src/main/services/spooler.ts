@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import type { PrintEvent, SpoolerStatus } from '@shared/types'
+import type { NoteKey, PrintEvent, SpoolerStatus } from '@shared/types'
 import { nowIso } from '../util/time'
 import type { FileService } from './files'
 import type { PrintService } from './prints'
@@ -293,7 +293,7 @@ export class SpoolerService {
         copies: toInt(raw.copies) ?? 1,
         printedAt,
         externalId: `spooler:event:${raw.recordId ?? `${printedAt}:${raw.document ?? ''}`}`,
-        note: 'Reported by the Windows print spooler event log'
+        noteKey: 'note.spoolerEventLog'
       })
       if (event) this.callbacks.onPrintRecorded(event)
     }
@@ -322,7 +322,7 @@ export class SpoolerService {
         printedAt: nowIso(),
         externalId: `spooler:job:${key}`,
         status: job.status ?? null,
-        note: 'Print job left the Windows print queue (completed or cancelled)'
+        noteKey: 'note.spoolerQueue'
       })
       if (event) this.callbacks.onPrintRecorded(event)
     }
@@ -339,7 +339,7 @@ export class SpoolerService {
     printedAt: string
     externalId: string
     status?: string | null
-    note: string
+    noteKey: NoteKey
   }): PrintEvent | null {
     const match = this.files.findByDocumentName(input.documentName)
 
@@ -352,7 +352,7 @@ export class SpoolerService {
       pages: input.pages,
       copies: input.copies,
       status: input.status ?? null,
-      note: input.note,
+      noteKey: input.noteKey,
       printedAt: input.printedAt,
       externalId: input.externalId
     })

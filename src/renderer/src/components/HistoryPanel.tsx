@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Page, PrintEvent, PrintSource, ToastMessage } from '@shared/types'
+import { useI18n } from '../i18n'
 import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
 import SourceBadge from './SourceBadge'
@@ -13,6 +14,7 @@ export default function HistoryPanel({
   onChanged: () => void
   onToast: (toast: ToastMessage) => void
 }) {
+  const { t, tn, locale, note: noteText } = useI18n()
   const [data, setData] = useState<Page<PrintEvent>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -59,15 +61,15 @@ export default function HistoryPanel({
     <>
       <header className="page-header">
         <div>
-          <h1>Print history</h1>
+          <h1>{t('history.title')}</h1>
           <p>
-            {data.total} print event{data.total === 1 ? '' : 's'}
-            {loading ? ' · refreshing…' : ''}
+            {tn(data.total, 'history.count.one', 'history.count.other')}
+            {loading ? ` · ${t('common.refreshing')}` : ''}
           </p>
         </div>
         <div className="row">
           <button type="button" className="btn primary" onClick={() => setShowManual(true)}>
-            + Log a print
+            {t('history.logPrint')}
           </button>
         </div>
       </header>
@@ -77,7 +79,7 @@ export default function HistoryPanel({
           <input
             className="search"
             type="search"
-            placeholder="Search document, printer or note…"
+            placeholder={t('history.searchPlaceholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -85,70 +87,76 @@ export default function HistoryPanel({
             value={source}
             onChange={(event) => setSource(event.target.value as 'all' | PrintSource)}
           >
-            <option value="all">All sources</option>
-            <option value="watcher">Folder watch</option>
-            <option value="spooler">Spooler</option>
-            <option value="manual">Manual</option>
+            <option value="all">{t('history.allSources')}</option>
+            <option value="watcher">{t('source.watcher')}</option>
+            <option value="spooler">{t('source.spooler')}</option>
+            <option value="manual">{t('source.manual')}</option>
           </select>
           <span className="spacer" />
           <button type="button" className="btn tiny" onClick={() => void load()}>
-            Refresh
+            {t('common.refresh')}
           </button>
         </div>
 
         {data.items.length === 0 ? (
           <div className="empty">
-            <strong>{loading ? 'Loading history…' : 'No print events'}</strong>
-            {loading ? null : 'Events appear here as folders or the print spooler report them.'}
+            <strong>{loading ? t('history.loading') : t('history.emptyTitle')}</strong>
+            {loading ? null : t('history.emptyBody')}
           </div>
         ) : (
           <div className="panel-body flush">
             <table>
               <thead>
                 <tr>
-                  <th>Printed</th>
-                  <th>Document</th>
-                  <th>Source</th>
-                  <th>Printer</th>
-                  <th className="num">Copies</th>
-                  <th className="num">Pages</th>
-                  <th>User</th>
+                  <th>{t('history.table.printed')}</th>
+                  <th>{t('history.table.document')}</th>
+                  <th>{t('history.table.source')}</th>
+                  <th>{t('history.table.printer')}</th>
+                  <th className="num">{t('history.table.copies')}</th>
+                  <th className="num">{t('history.table.pages')}</th>
+                  <th>{t('history.table.user')}</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((event) => (
-                  <tr key={event.id}>
-                    <td>
-                      <div>{formatRelative(event.printedAt)}</div>
-                      <div className="cell-sub">{formatDateTime(event.printedAt)}</div>
-                    </td>
-                    <td>
-                      <div className="cell-main">{event.fileName ?? 'Unknown document'}</div>
-                      {event.filePath ? <div className="cell-sub">{event.filePath}</div> : null}
-                      {event.note ? <div className="cell-sub">{event.note}</div> : null}
-                    </td>
-                    <td>
-                      <SourceBadge source={event.source} />
-                    </td>
-                    <td className="cell-sub">{event.printer ?? '—'}</td>
-                    <td className="num">{event.copies}</td>
-                    <td className="num">{event.pages ?? '—'}</td>
-                    <td className="cell-sub">{event.userName ?? '—'}</td>
-                    <td>
-                      <div className="cell-actions">
-                        <button
-                          type="button"
-                          className="btn tiny danger"
-                          title="Delete this print event"
-                          onClick={() => void remove(event)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {data.items.map((event) => {
+                  // System notes are stored as keys so they follow the UI language;
+                  // user-typed notes are shown verbatim.
+                  const description = noteText(event.noteKey, event.noteParams) ?? event.note
+                  return (
+                    <tr key={event.id}>
+                      <td>
+                        <div>{formatRelative(event.printedAt, locale)}</div>
+                        <div className="cell-sub">{formatDateTime(event.printedAt, locale)}</div>
+                      </td>
+                      <td>
+                        <div className="cell-main">
+                          {event.fileName ?? t('common.unknownDocument')}
+                        </div>
+                        {event.filePath ? <div className="cell-sub">{event.filePath}</div> : null}
+                        {description ? <div className="cell-sub">{description}</div> : null}
+                      </td>
+                      <td>
+                        <SourceBadge source={event.source} />
+                      </td>
+                      <td className="cell-sub">{event.printer ?? t('common.emptyValue')}</td>
+                      <td className="num">{event.copies}</td>
+                      <td className="num">{event.pages ?? t('common.emptyValue')}</td>
+                      <td className="cell-sub">{event.userName ?? t('common.emptyValue')}</td>
+                      <td>
+                        <div className="cell-actions">
+                          <button
+                            type="button"
+                            className="btn tiny danger"
+                            onClick={() => void remove(event)}
+                          >
+                            {t('common.delete')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

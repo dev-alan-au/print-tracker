@@ -1,8 +1,15 @@
-import type { DashboardStats, PrintSource } from '@shared/types'
+import type { DashboardStats, MessageKey, PrintSource } from '@shared/types'
+import { useI18n } from '../i18n'
 import { formatDayLabel, formatRelative } from '../lib/format'
 import SourceBadge from './SourceBadge'
 
 const SOURCE_ORDER: PrintSource[] = ['watcher', 'spooler', 'manual']
+
+const SOURCE_DESCRIPTION_KEYS: Record<PrintSource, MessageKey> = {
+  watcher: 'dashboard.sources.watcher',
+  spooler: 'dashboard.sources.spooler',
+  manual: 'dashboard.sources.manual'
+}
 
 export default function Dashboard({
   stats,
@@ -11,8 +18,10 @@ export default function Dashboard({
   stats: DashboardStats | null
   onNavigate: (tab: 'folders' | 'files' | 'history') => void
 }) {
+  const { t, tn, locale } = useI18n()
+
   if (!stats) {
-    return <div className="empty">Loading dashboard…</div>
+    return <div className="empty">{t('dashboard.loading')}</div>
   }
 
   const maxPerDay = Math.max(1, ...stats.printsByDay.map((entry) => entry.count))
@@ -22,51 +31,51 @@ export default function Dashboard({
     <>
       <header className="page-header">
         <div>
-          <h1>Dashboard</h1>
-          <p>Everything Print Tracker has indexed and printed so far.</p>
+          <h1>{t('dashboard.title')}</h1>
+          <p>{t('dashboard.subtitle')}</p>
         </div>
         <div className="row">
           <button type="button" className="btn" onClick={() => onNavigate('folders')}>
-            Manage folders
+            {t('dashboard.manageFolders')}
           </button>
           <button type="button" className="btn primary" onClick={() => onNavigate('history')}>
-            Print history
+            {t('dashboard.printHistory')}
           </button>
         </div>
       </header>
 
       <div className="stat-grid">
         <div className="stat">
-          <div className="stat-label">Folders</div>
+          <div className="stat-label">{t('dashboard.stat.folders')}</div>
           <div className="stat-value">{stats.folderCount}</div>
-          <div className="stat-hint">being watched</div>
+          <div className="stat-hint">{t('dashboard.hint.watched')}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Files indexed</div>
+          <div className="stat-label">{t('dashboard.stat.files')}</div>
           <div className="stat-value">{stats.fileCount}</div>
-          <div className="stat-hint">currently present</div>
+          <div className="stat-hint">{t('dashboard.hint.present')}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Prints recorded</div>
+          <div className="stat-label">{t('dashboard.stat.prints')}</div>
           <div className="stat-value">{stats.printCount}</div>
-          <div className="stat-hint">all time</div>
+          <div className="stat-hint">{t('dashboard.hint.allTime')}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Today</div>
+          <div className="stat-label">{t('dashboard.stat.today')}</div>
           <div className="stat-value">{stats.printsToday}</div>
-          <div className="stat-hint">since midnight</div>
+          <div className="stat-hint">{t('dashboard.hint.sinceMidnight')}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">This week</div>
+          <div className="stat-label">{t('dashboard.stat.week')}</div>
           <div className="stat-value">{stats.printsThisWeek}</div>
-          <div className="stat-hint">since Monday</div>
+          <div className="stat-hint">{t('dashboard.hint.sinceMonday')}</div>
         </div>
       </div>
 
       <div className="grid-2">
         <section className="panel">
           <div className="panel-head">
-            <h2>Prints — last 14 days</h2>
+            <h2>{t('dashboard.chart.title')}</h2>
           </div>
           <div className="panel-body">
             <div className="chart">
@@ -74,7 +83,10 @@ export default function Dashboard({
                 <div
                   className="chart-col"
                   key={entry.day}
-                  title={`${entry.day}: ${entry.count} print${entry.count === 1 ? '' : 's'}`}
+                  title={t('dashboard.chart.tooltip', {
+                    day: formatDayLabel(entry.day, locale),
+                    count: entry.count
+                  })}
                 >
                   <div className="chart-value">{entry.count > 0 ? entry.count : ''}</div>
                   <div className="chart-bar-wrap">
@@ -85,7 +97,7 @@ export default function Dashboard({
                       }}
                     />
                   </div>
-                  <div className="chart-label">{formatDayLabel(entry.day)}</div>
+                  <div className="chart-label">{formatDayLabel(entry.day, locale)}</div>
                 </div>
               ))}
             </div>
@@ -94,7 +106,7 @@ export default function Dashboard({
 
         <section className="panel">
           <div className="panel-head">
-            <h2>By detection source</h2>
+            <h2>{t('dashboard.sources.title')}</h2>
           </div>
           <div className="list">
             {SOURCE_ORDER.map((source) => {
@@ -103,13 +115,7 @@ export default function Dashboard({
               return (
                 <div className="list-item" key={source}>
                   <SourceBadge source={source} />
-                  <span className="grow hint">
-                    {source === 'watcher'
-                      ? 'Files appearing in output folders'
-                      : source === 'spooler'
-                        ? 'Windows print queue & event log'
-                        : 'Logged by hand'}
-                  </span>
+                  <span className="grow hint">{t(SOURCE_DESCRIPTION_KEYS[source])}</span>
                   <span className="count-pill">
                     {count} · {share}%
                   </span>
@@ -123,12 +129,12 @@ export default function Dashboard({
       <div className="grid-2">
         <section className="panel">
           <div className="panel-head">
-            <h2>Most printed</h2>
+            <h2>{t('dashboard.top.title')}</h2>
           </div>
           {stats.topFiles.length === 0 ? (
             <div className="empty">
-              <strong>No prints recorded yet</strong>
-              Add an output folder or mark a file as printed.
+              <strong>{t('dashboard.top.emptyTitle')}</strong>
+              {t('dashboard.top.emptyBody')}
             </div>
           ) : (
             <div className="list">
@@ -136,7 +142,7 @@ export default function Dashboard({
                 <div className="list-item" key={`${entry.fileId ?? 'x'}-${entry.name}`}>
                   <span className="grow cell-main">{entry.name}</span>
                   <span className="count-pill">
-                    {entry.count} print{entry.count === 1 ? '' : 's'}
+                    {tn(entry.count, 'unit.prints.one', 'unit.prints.other')}
                   </span>
                 </div>
               ))}
@@ -146,20 +152,22 @@ export default function Dashboard({
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Recent activity</h2>
+            <h2>{t('dashboard.recent.title')}</h2>
           </div>
           {stats.recent.length === 0 ? (
-            <div className="empty">Nothing printed yet.</div>
+            <div className="empty">{t('dashboard.recent.empty')}</div>
           ) : (
             <div className="list">
               {stats.recent.map((event) => (
                 <div className="list-item" key={event.id}>
                   <SourceBadge source={event.source} />
                   <span className="grow">
-                    <div className="cell-main">{event.fileName ?? 'Unknown document'}</div>
+                    <div className="cell-main">
+                      {event.fileName ?? t('common.unknownDocument')}
+                    </div>
                     <div className="cell-sub">
                       {event.printer ? `${event.printer} · ` : ''}
-                      {formatRelative(event.printedAt)}
+                      {formatRelative(event.printedAt, locale)}
                     </div>
                   </span>
                 </div>

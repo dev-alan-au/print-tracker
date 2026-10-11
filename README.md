@@ -65,7 +65,7 @@ Other scripts:
 ```bash
 npm run typecheck    # tsc for main/preload and for the renderer
 npm run build        # typecheck + bundle into out/
-npm run test:db      # SQLite smoke test against the real schema
+npm test             # database + i18n + end-to-end suites
 npm run build:win    # Windows NSIS installer into release/
 npm run build:dir    # unpacked build, no installer
 ```
@@ -103,6 +103,46 @@ shortcut).
 Because the SQLite driver is pure WebAssembly, the same `node_modules` produce a
 correct Windows build without any cross-compilation of native code.
 
+## Languages
+
+The interface ships in **English** and **Korean**. Choose one in
+**Settings → Language**; the choice is stored in the database so it survives
+restarts, and `System default` follows the operating system locale.
+
+Everything the user sees is translated: navigation, tables, dialogs, empty
+states, relative timestamps (via `Intl.RelativeTimeFormat`) and the notes
+attached to automatically detected prints.
+
+### Notes are stored as keys, not sentences
+
+A print event recorded by the folder watcher or the spooler stores a message key
+plus its parameters (`note_key` / `note_params`) rather than a finished English
+sentence, so history re-renders in whichever language is selected later.
+Free-text notes typed by the user are stored verbatim and never translated.
+
+Toasts raised by the main process work the same way: they carry a `messageKey`
+and the renderer resolves it. Only technical failures (a permission error, say)
+are passed through as raw text, because they are not translatable messages.
+
+The chosen language is also mirrored into `localStorage` so the first paint is
+already correct instead of flashing the default while settings load from the
+database.
+
+### Adding a language
+
+1. Copy `src/shared/i18n/en.ts` to `src/shared/i18n/<locale>.ts`, translate the
+   values and keep the `{placeholders}` intact.
+2. Type it as `Catalog`. TypeScript then fails the build if a key is missing or
+   misspelled.
+3. Register it in `src/shared/i18n/index.ts` (`CATALOGS`, `LOCALES`,
+   `LOCALE_LABELS`) and add the tag to the `Locale` union in
+   `src/shared/i18n/types.ts`.
+4. Run `npm run test:i18n`, which checks key parity, placeholder parity, empty
+   strings, unbalanced plural pairs and locale resolution.
+
+Plurals use `Intl.PluralRules`: English has distinct `.one` / `.other` strings,
+while Korean has a single plural category so its two variants are identical.
+
 ## Where your data lives
 
 `app.getPath('userData')`, which resolves to:
@@ -120,6 +160,7 @@ cascading, and the document name is stored on the event itself.
 ```
 src/
   shared/            types + IPC channel names used by all three processes
+  shared/i18n/       message catalogues (en, ko) and translation helpers
   main/
     db/              SQLite wrapper and versioned migrations
     services/        folders · files(index) · prints · watcher · spooler · settings
@@ -131,6 +172,8 @@ src/
   renderer/          React UI (Dashboard, Folders, Files, Print history, Settings)
 scripts/
   smoke-db.cjs       exercises the real schema against the SQLite driver
+  check-i18n.ts      translation catalogue consistency
+  e2e-core.ts        runs the services end-to-end on plain Node
 ```
 
 ### Security posture

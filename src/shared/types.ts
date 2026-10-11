@@ -3,6 +3,10 @@
  * React renderer. Keep this file free of any Node.js or DOM specific imports.
  */
 
+import type { AppLanguage, MessageKey, MessageParams, NoteKey } from './i18n/types'
+
+export type { AppLanguage, Locale, NoteKey, MessageKey, MessageParams } from './i18n/types'
+
 /* ------------------------------------------------------------------ folders */
 
 /** `library` folders are indexed. `output` folders additionally record a print
@@ -80,7 +84,15 @@ export interface PrintEvent {
   pages: number | null
   userName: string | null
   status: string | null
+  /**
+   * Free-text note. Only ever user-authored (manual entries); notes the app
+   * generates itself are stored as `noteKey` instead.
+   */
   note: string | null
+  /** Localisation key for an app-generated note, or null. */
+  noteKey: NoteKey | null
+  /** Placeholder values for `noteKey`. */
+  noteParams: MessageParams | null
   printedAt: string
   createdAt: string
 }
@@ -118,7 +130,11 @@ export interface RecordPrintInput {
   pages?: number | null
   userName?: string | null
   status?: string | null
+  /** Free-text note; used for user-authored text only. */
   note?: string | null
+  /** Preferred for app-generated notes so they stay translatable. */
+  noteKey?: NoteKey | null
+  noteParams?: MessageParams | null
   printedAt?: string | null
   /** Dedupe key, e.g. `spooler:<recordId>`. */
   externalId?: string | null
@@ -160,6 +176,8 @@ export interface AppSettings {
   spoolerPollIntervalMs: number
   autoStartWatching: boolean
   minFileStabilityMs: number
+  /** UI language; `system` follows the operating system locale. */
+  language: AppLanguage
 }
 
 export interface AppInfo {
@@ -180,9 +198,21 @@ export interface Page<T> {
   total: number
 }
 
+export type ToastKind = 'info' | 'success' | 'warning' | 'error'
+
 export interface ToastMessage {
-  kind: 'info' | 'success' | 'warning' | 'error'
-  message: string
+  kind: ToastKind
+  /**
+   * Preferred: a message key the renderer localises at display time. Main
+   * process toasts use this so no English text is baked into the backend.
+   */
+  messageKey?: MessageKey
+  messageParams?: MessageParams
+  /**
+   * Fallback text that is displayed verbatim. Used for technical failures
+   * (e.g. a permission error) which are not translatable messages.
+   */
+  message?: string
 }
 
 /** The surface exposed on `window.api` by the preload script. */

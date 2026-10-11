@@ -5,7 +5,7 @@
  * Never edit an existing entry once it has shipped - append a new one instead.
  */
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const MIGRATIONS: readonly string[] = [
   /* v0 -> v1 : initial schema */
@@ -62,5 +62,15 @@ export const MIGRATIONS: readonly string[] = [
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+  `,
+
+  /* v1 -> v2 : localisable notes.
+     Notes the application generates itself store a message key plus placeholder
+     values instead of a finished English sentence, so stored history re-renders
+     in whichever language the user selects later. `note` stays reserved for
+     free text typed by the user. */
+  `
+  ALTER TABLE print_events ADD COLUMN note_key    TEXT;
+  ALTER TABLE print_events ADD COLUMN note_params TEXT;
   `
 ]

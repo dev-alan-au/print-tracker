@@ -127,7 +127,8 @@ export class WatcherService {
       fileId,
       source: 'watcher',
       documentName: basename(filePath),
-      note: `${isNew ? 'New file' : 'Updated file'} detected in output folder "${folder.name}"`,
+      noteKey: isNew ? 'note.outputNewFile' : 'note.outputUpdatedFile',
+      noteParams: { folder: folder.name },
       externalId: `watcher:${filePath}:${stamp}`
     })
 

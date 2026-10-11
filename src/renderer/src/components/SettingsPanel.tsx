@@ -1,31 +1,35 @@
 import { useCallback, useEffect, useState } from 'react'
+import { LOCALE_LABELS, LOCALES, type AppLanguage } from '@shared/i18n'
 import type { AppInfo, AppSettings, SpoolerStatus, ToastMessage } from '@shared/types'
+import { useI18n } from '../i18n'
 import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
 
 export default function SettingsPanel({
   refreshToken,
+  settings,
+  onUpdateSettings,
   spoolerStatus,
   onSpoolerStatus,
   onToast
 }: {
   refreshToken: number
+  settings: AppSettings | null
+  onUpdateSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>
   spoolerStatus: SpoolerStatus | null
   onSpoolerStatus: (status: SpoolerStatus) => void
   onToast: (toast: ToastMessage) => void
 }) {
-  const [settings, setSettings] = useState<AppSettings | null>(null)
+  const { t, locale } = useI18n()
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [printers, setPrinters] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      const [nextSettings, nextInfo, status] = await Promise.all([
-        window.api.settings.get(),
+      const [nextInfo, status] = await Promise.all([
         window.api.settings.appInfo(),
         window.api.spooler.status()
       ])
-      setSettings(nextSettings)
       setInfo(nextInfo)
       onSpoolerStatus(status)
     } catch (caught) {
@@ -39,7 +43,7 @@ export default function SettingsPanel({
 
   const patch = async (changes: Partial<AppSettings>): Promise<void> => {
     try {
-      setSettings(await window.api.settings.update(changes))
+      await onUpdateSettings(changes)
     } catch (caught) {
       onToast({ kind: 'error', message: errorMessage(caught) })
     }
@@ -86,7 +90,7 @@ export default function SettingsPanel({
     if (!info) return
     try {
       await navigator.clipboard.writeText(info.databasePath)
-      onToast({ kind: 'success', message: 'Database path copied.' })
+      onToast({ kind: 'success', messageKey: 'settings.toast.copied' })
     } catch {
       onToast({ kind: 'warning', message: info.databasePath })
     }
@@ -106,27 +110,47 @@ export default function SettingsPanel({
     <>
       <header className="page-header">
         <div>
-          <h1>Settings</h1>
-          <p>Detection sources, polling behaviour and application information.</p>
+          <h1>{t('settings.title')}</h1>
+          <p>{t('settings.subtitle')}</p>
         </div>
       </header>
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Windows print spooler</h2>
+          <h2>{t('settings.appearance.title')}</h2>
+        </div>
+        <div className="panel-body">
+          <div className="field" style={{ maxWidth: 320 }}>
+            <label htmlFor="language">{t('settings.appearance.language')}</label>
+            <select
+              id="language"
+              value={settings?.language ?? 'system'}
+              onChange={(event) => void patch({ language: event.target.value as AppLanguage })}
+            >
+              <option value="system">{t('settings.appearance.system')}</option>
+              {LOCALES.map((entry) => (
+                <option key={entry} value={entry}>
+                  {LOCALE_LABELS[entry]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>{t('settings.spooler.title')}</h2>
           <span className="spacer" />
           <span className="badge neutral">
             <span className={`status-dot ${statusDotClass}`} />
-            {spoolerStatus?.running ? 'running' : 'stopped'}
+            {spoolerStatus?.running ? t('settings.spooler.running') : t('settings.spooler.stopped')}
           </span>
         </div>
 
         <div className="panel-body">
           {spoolerStatus && !spoolerStatus.supported ? (
-            <div className="note">
-              Spooler monitoring only works on Windows. On this platform Print Tracker still tracks
-              files inside watched folders and accepts manual print entries.
-            </div>
+            <div className="note">{t('settings.spooler.unsupported')}</div>
           ) : null}
 
           {spoolerStatus?.lastError ? <div className="note">{spoolerStatus.lastError}</div> : null}
@@ -138,7 +162,9 @@ export default function SettingsPanel({
               disabled={busy || !spoolerStatus?.supported}
               onClick={() => void toggleSpooler()}
             >
-              {spoolerStatus?.running ? 'Stop monitoring' : 'Start monitoring'}
+              {spoolerStatus?.running
+                ? t('settings.spooler.stop')
+                : t('settings.spooler.start')}
             </button>
             <button
               type="button"
@@ -146,7 +172,7 @@ export default function SettingsPanel({
               disabled={busy || !spoolerStatus?.supported}
               onClick={() => void pollNow()}
             >
-              Poll now
+              {t('settings.spooler.pollNow')}
             </button>
             <button
               type="button"
@@ -154,13 +180,13 @@ export default function SettingsPanel({
               disabled={busy || !spoolerStatus?.supported}
               onClick={() => void refreshPrinters()}
             >
-              List printers
+              {t('settings.spooler.listPrinters')}
             </button>
           </div>
 
           <div className="row" style={{ marginTop: 14, alignItems: 'flex-end' }}>
             <div className="field" style={{ width: 220, marginBottom: 0 }}>
-              <label htmlFor="poll-interval">Poll interval (seconds)</label>
+              <label htmlFor="poll-interval">{t('settings.spooler.pollInterval')}</label>
               <input
                 id="poll-interval"
                 type="number"
@@ -179,32 +205,35 @@ export default function SettingsPanel({
                 checked={settings?.spoolerEnabled ?? true}
                 onChange={(event) => void patch({ spoolerEnabled: event.target.checked })}
               />
-              start monitoring with the app
+              {t('settings.spooler.autoStart')}
             </label>
           </div>
 
           <dl className="kv" style={{ marginTop: 16 }}>
-            <dt>Event log enabled</dt>
+            <dt>{t('settings.spooler.eventLog')}</dt>
             <dd>
               {spoolerStatus?.logEnabled === null || spoolerStatus === null
-                ? 'unknown'
+                ? t('settings.spooler.eventLogUnknown')
                 : spoolerStatus.logEnabled
-                  ? 'yes — reading Microsoft-Windows-PrintService/Operational'
-                  : 'no — falling back to print-queue tracking'}
+                  ? t('settings.spooler.eventLogEnabled')
+                  : t('settings.spooler.eventLogDisabled')}
             </dd>
-            <dt>Last poll</dt>
-            <dd>{spoolerStatus?.lastPollAt ? formatDateTime(spoolerStatus.lastPollAt) : 'never'}</dd>
-            <dt>Printers detected</dt>
+            <dt>{t('settings.spooler.lastPoll')}</dt>
             <dd>
-              {(printers.length > 0 ? printers : spoolerStatus?.printers ?? []).join(', ') || '—'}
+              {spoolerStatus?.lastPollAt
+                ? formatDateTime(spoolerStatus.lastPollAt, locale)
+                : t('settings.spooler.never')}
+            </dd>
+            <dt>{t('settings.spooler.printers')}</dt>
+            <dd>
+              {(printers.length > 0 ? printers : (spoolerStatus?.printers ?? [])).join(', ') ||
+                t('common.emptyValue')}
             </dd>
           </dl>
 
           {spoolerStatus?.supported && spoolerStatus.logEnabled === false ? (
             <div className="note">
-              The operational print log is disabled, so completed jobs are inferred from the print
-              queue. For exact page counts and document names, enable it once from an{' '}
-              <strong>elevated PowerShell</strong>:
+              {t('settings.spooler.enableLog')}
               <br />
               <code>wevtutil sl Microsoft-Windows-PrintService/Operational /e:true</code>
             </div>
@@ -214,7 +243,7 @@ export default function SettingsPanel({
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Folder watching</h2>
+          <h2>{t('settings.watching.title')}</h2>
         </div>
         <div className="panel-body">
           <div className="row" style={{ alignItems: 'flex-end' }}>
@@ -224,11 +253,11 @@ export default function SettingsPanel({
                 checked={settings?.autoStartWatching ?? true}
                 onChange={(event) => void patch({ autoStartWatching: event.target.checked })}
               />
-              watch folders while the app is running
+              {t('settings.watching.autoStart')}
             </label>
 
             <div className="field" style={{ width: 240, marginBottom: 0 }}>
-              <label htmlFor="stability">Wait for writes to settle (ms)</label>
+              <label htmlFor="stability">{t('settings.watching.stability')}</label>
               <input
                 id="stability"
                 type="number"
@@ -242,40 +271,37 @@ export default function SettingsPanel({
             </div>
           </div>
 
-          <div className="note">
-            A file in an <strong>output</strong> folder counts as a print once it has been stable for
-            this long. Increase it if your print workflow writes files in several passes.
-          </div>
+          <div className="note">{t('settings.watching.note')}</div>
         </div>
       </section>
 
       <section className="panel">
         <div className="panel-head">
-          <h2>About</h2>
+          <h2>{t('settings.about.title')}</h2>
         </div>
         <div className="panel-body">
           <dl className="kv">
-            <dt>Application</dt>
+            <dt>{t('settings.about.application')}</dt>
             <dd>
               {info?.name ?? 'Print Tracker'} {info?.version ? `v${info.version}` : ''}
             </dd>
-            <dt>Platform</dt>
-            <dd>{info?.platform ?? '—'}</dd>
-            <dt>Electron / Node / Chromium</dt>
+            <dt>{t('settings.about.platform')}</dt>
+            <dd>{info?.platform ?? t('common.emptyValue')}</dd>
+            <dt>{t('settings.about.runtime')}</dt>
+            <dd>{info ? `${info.electron} / ${info.node} / ${info.chrome}` : t('common.emptyValue')}</dd>
+            <dt>{t('settings.about.dataDir')}</dt>
+            <dd>{info?.dataDir ?? t('common.emptyValue')}</dd>
+            <dt>{t('settings.about.database')}</dt>
             <dd>
-              {info ? `${info.electron} / ${info.node} / ${info.chrome}` : '—'}
-            </dd>
-            <dt>Data directory</dt>
-            <dd>{info?.dataDir ?? '—'}</dd>
-            <dt>Database</dt>
-            <dd>
-              <code>{info?.databasePath ?? '—'}</code>{' '}
+              <code>{info?.databasePath ?? t('common.emptyValue')}</code>{' '}
               <button type="button" className="btn tiny ghost" onClick={() => void copyDatabasePath()}>
-                copy
+                {t('common.copy')}
               </button>
             </dd>
-            <dt>Session uptime</dt>
-            <dd>{formatRelative(new Date(Date.now() - performance.now()).toISOString())}</dd>
+            <dt>{t('settings.about.sessionUptime')}</dt>
+            <dd>
+              {formatRelative(new Date(Date.now() - performance.now()).toISOString(), locale)}
+            </dd>
           </dl>
         </div>
       </section>

@@ -1,7 +1,10 @@
-import type { ToastMessage } from '@shared/types'
+import type { ToastKind } from '@shared/types'
 
-export interface Toast extends ToastMessage {
+export interface Toast {
   id: number
+  kind: ToastKind
+  /** Already resolved to the active UI language. */
+  message: string
 }
 
 export default function Toasts({

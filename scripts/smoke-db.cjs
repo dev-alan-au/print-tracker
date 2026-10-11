@@ -37,6 +37,10 @@ const schemaMatch = schemaSource.match(/\/\* v0 -> v1 : initial schema \*\/\s*`(
 assert(schemaMatch, 'could not extract migration SQL from schema.ts')
 const SCHEMA_SQL = schemaMatch[1]
 
+const v2Match = schemaSource.match(/\/\* v1 -> v2 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
+assert(v2Match, 'could not extract the v1 -> v2 migration from schema.ts')
+const SCHEMA_V2_SQL = v2Match[1]
+
 const dbPath = join(ROOT, 'print-tracker.db')
 const db = new Database(dbPath)
 
@@ -227,6 +231,41 @@ check('settings key/value upsert works', () => {
     ['spoolerPollIntervalMs', '9000']
   )
   assertEqual(db.get('SELECT value FROM settings WHERE key = ?', ['spoolerPollIntervalMs']).value, '9000', 'value')
+})
+
+check('v1 -> v2 migration adds the note columns to an existing database', () => {
+  const legacyPath = join(ROOT, 'legacy.db')
+  const legacy = new Database(legacyPath)
+  legacy.exec(SCHEMA_SQL)
+  legacy.exec('PRAGMA user_version = 1')
+  legacy.run(
+    `INSERT INTO print_events (source, document_name, note, copies, printed_at, created_at)
+     VALUES ('watcher', 'old.pdf', 'New file detected', 1, ?, ?)`,
+    ['2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z']
+  )
+  legacy.close()
+
+  const upgraded = new Database(legacyPath)
+  assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 1, 'starts at v1')
+
+  upgraded.exec('BEGIN')
+  upgraded.exec(SCHEMA_V2_SQL)
+  upgraded.exec('PRAGMA user_version = 2')
+  upgraded.exec('COMMIT')
+
+  const columns = upgraded.all('PRAGMA table_info(print_events)').map((row) => row.name)
+  assert(columns.includes('note_key'), 'note_key column missing')
+  assert(columns.includes('note_params'), 'note_params column missing')
+  assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 2, 'now at v2')
+
+  // Pre-existing rows keep their plain-text note and simply have no key.
+  const row = upgraded.get('SELECT note, note_key FROM print_events WHERE document_name = ?', [
+    'old.pdf'
+  ])
+  assertEqual(row.note, 'New file detected', 'legacy note preserved')
+  assertEqual(row.note_key, null, 'legacy note_key is null')
+
+  upgraded.close()
 })
 
 check('database file exists on disk and reopens', () => {

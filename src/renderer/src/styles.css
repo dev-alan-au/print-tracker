@@ -37,7 +37,9 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, "Inter", Roboto, sans-serif;
+  /* Segoe UI covers Latin; the CJK faces behind it supply Hangul glyphs. */
+  font-family: "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+    system-ui, -apple-system, "Inter", Roboto, sans-serif;
   font-size: 13.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

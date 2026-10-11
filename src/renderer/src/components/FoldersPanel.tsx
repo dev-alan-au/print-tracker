@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FolderKind, ToastMessage, TrackedFolder } from '@shared/types'
+import { useI18n } from '../i18n'
 import { errorMessage } from '../lib/format'
 import Modal from './Modal'
 
@@ -18,6 +19,7 @@ export default function FoldersPanel({
   onChanged: () => void
   onToast: (toast: ToastMessage) => void
 }) {
+  const { t } = useI18n()
   const [folders, setFolders] = useState<TrackedFolder[]>([])
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -77,9 +79,7 @@ export default function FoldersPanel({
   }
 
   const remove = async (folder: TrackedFolder): Promise<void> => {
-    const confirmed = window.confirm(
-      `Stop tracking "${folder.name}"?\n\nIts indexed files are removed from the database. Recorded print history is kept.`
-    )
+    const confirmed = window.confirm(t('folders.confirmRemove', { name: folder.name }))
     if (!confirmed) return
     try {
       await window.api.folders.remove(folder.id)
@@ -100,7 +100,11 @@ export default function FoldersPanel({
     setBusy(true)
     try {
       const result = await window.api.folders.rescan(folder.id)
-      onToast({ kind: 'success', message: `Rescanned "${folder.name}" — ${result.indexed} file(s).` })
+      onToast({
+        kind: 'success',
+        messageKey: 'folders.toast.rescanned',
+        messageParams: { name: folder.name, count: result.indexed }
+      })
       await load()
       onChanged()
     } catch (caught) {
@@ -118,7 +122,11 @@ export default function FoldersPanel({
         const result = await window.api.folders.rescan(folder.id)
         total += result.indexed
       }
-      onToast({ kind: 'success', message: `Rescanned ${folders.length} folder(s) — ${total} file(s).` })
+      onToast({
+        kind: 'success',
+        messageKey: 'folders.toast.rescannedAll',
+        messageParams: { folders: folders.length, files: total }
+      })
       await load()
       onChanged()
     } finally {
@@ -130,18 +138,15 @@ export default function FoldersPanel({
     <>
       <header className="page-header">
         <div>
-          <h1>Folders</h1>
-          <p>
-            <strong>Library</strong> folders are indexed and tracked. <strong>Output</strong> folders
-            additionally record a print every time a new file lands in them.
-          </p>
+          <h1>{t('folders.title')}</h1>
+          <p>{t('folders.subtitle')}</p>
         </div>
         <div className="row">
           <button type="button" className="btn" disabled={busy || folders.length === 0} onClick={() => void rescanAll()}>
-            Rescan all
+            {t('folders.rescanAll')}
           </button>
           <button type="button" className="btn primary" onClick={() => void pickFolder()}>
-            + Add folder
+            {t('folders.add')}
           </button>
         </div>
       </header>
@@ -150,22 +155,22 @@ export default function FoldersPanel({
 
       <section className="panel">
         {!loaded ? (
-          <div className="empty">Loading folders…</div>
+          <div className="empty">{t('folders.loading')}</div>
         ) : folders.length === 0 ? (
           <div className="empty">
-            <strong>No folders tracked yet</strong>
-            Add a folder of documents, or an output folder that your print workflow drops files into.
+            <strong>{t('folders.emptyTitle')}</strong>
+            {t('folders.emptyBody')}
           </div>
         ) : (
           <div className="panel-body flush">
             <table>
               <thead>
                 <tr>
-                  <th>Folder</th>
-                  <th>Role</th>
-                  <th>Subfolders</th>
-                  <th>Enabled</th>
-                  <th className="num">Files</th>
+                  <th>{t('folders.table.folder')}</th>
+                  <th>{t('folders.table.role')}</th>
+                  <th>{t('folders.table.subfolders')}</th>
+                  <th>{t('folders.table.enabled')}</th>
+                  <th className="num">{t('folders.table.files')}</th>
                   <th />
                 </tr>
               </thead>
@@ -175,7 +180,9 @@ export default function FoldersPanel({
                     <td>
                       <div className="cell-main">
                         {folder.name}{' '}
-                        {folder.kind === 'output' ? <span className="badge output">output</span> : null}
+                        {folder.kind === 'output' ? (
+                          <span className="badge output">{t('folders.badge.output')}</span>
+                        ) : null}
                       </div>
                       <div className="cell-sub">{folder.path}</div>
                     </td>
@@ -186,8 +193,8 @@ export default function FoldersPanel({
                           void update(folder.id, { kind: event.target.value as FolderKind })
                         }
                       >
-                        <option value="library">Library</option>
-                        <option value="output">Output / spool</option>
+                        <option value="library">{t('folders.role.library')}</option>
+                        <option value="output">{t('folders.role.output')}</option>
                       </select>
                     </td>
                     <td>
@@ -197,7 +204,7 @@ export default function FoldersPanel({
                           checked={folder.recursive}
                           onChange={(event) => void update(folder.id, { recursive: event.target.checked })}
                         />
-                        recursive
+                        {t('folders.recursive')}
                       </label>
                     </td>
                     <td>
@@ -218,21 +225,21 @@ export default function FoldersPanel({
                           disabled={busy}
                           onClick={() => void rescan(folder)}
                         >
-                          Rescan
+                          {t('common.rescan')}
                         </button>
                         <button
                           type="button"
                           className="btn tiny"
                           onClick={() => reveal(folder)}
                         >
-                          Open
+                          {t('common.open')}
                         </button>
                         <button
                           type="button"
                           className="btn tiny danger"
                           onClick={() => void remove(folder)}
                         >
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </div>
                     </td>
@@ -246,26 +253,26 @@ export default function FoldersPanel({
 
       {pending ? (
         <Modal
-          title="Track a folder"
+          title={t('folders.modal.title')}
           onClose={() => setPending(null)}
           footer={
             <>
               <button type="button" className="btn" onClick={() => setPending(null)}>
-                Cancel
+                {t('common.cancel')}
               </button>
               <button type="button" className="btn primary" disabled={busy} onClick={() => void confirmAdd()}>
-                {busy ? 'Indexing…' : 'Add folder'}
+                {busy ? t('folders.modal.submitting') : t('folders.modal.submit')}
               </button>
             </>
           }
         >
           <div className="field">
-            <label>Folder</label>
+            <label>{t('folders.modal.folder')}</label>
             <code>{pending.path}</code>
           </div>
 
           <div className="field">
-            <label htmlFor="folder-kind">Role</label>
+            <label htmlFor="folder-kind">{t('folders.modal.role')}</label>
             <select
               id="folder-kind"
               value={pending.kind}
@@ -273,8 +280,8 @@ export default function FoldersPanel({
                 setPending({ ...pending, kind: event.target.value as FolderKind })
               }
             >
-              <option value="library">Library — index files, no automatic print events</option>
-              <option value="output">Output / spool — new files count as prints</option>
+              <option value="library">{t('folders.role.libraryLong')}</option>
+              <option value="output">{t('folders.role.outputLong')}</option>
             </select>
           </div>
 
@@ -284,13 +291,10 @@ export default function FoldersPanel({
               checked={pending.recursive}
               onChange={(event) => setPending({ ...pending, recursive: event.target.checked })}
             />
-            Include subfolders
+            {t('folders.modal.includeSubfolders')}
           </label>
 
-          <div className="note">
-            Files are <strong>not copied</strong>. Print Tracker only stores the path, size and
-            timestamps in a local database.
-          </div>
+          <div className="note">{t('folders.modal.note')}</div>
         </Modal>
       ) : null}
     </>

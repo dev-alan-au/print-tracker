@@ -57,22 +57,27 @@ function createWindow(): void {
   // actually mounted and received the preload bridge.
   if (process.env['PT_DEBUG']) {
     mainWindow.webContents.on('did-finish-load', () => {
-      void mainWindow?.webContents
-        .executeJavaScript(
-          `({
-             hasApi: typeof window.api === 'object' && window.api !== null,
-             apiKeys: window.api ? Object.keys(window.api).sort() : [],
-             mounted: Boolean(document.querySelector('.app')),
-             navItems: document.querySelectorAll('.nav-item').length,
-             heading: document.querySelector('h1')?.textContent ?? null
-           })`
-        )
-        .then((state: unknown) => {
-          console.log('[pt-debug] renderer state:', JSON.stringify(state))
-        })
-        .catch((error: unknown) => {
-          console.error('[pt-debug] probe failed:', error)
-        })
+      // React resolves settings over IPC, so sample the DOM once it has settled.
+      setTimeout(() => {
+        void mainWindow?.webContents
+          .executeJavaScript(
+            `({
+               hasApi: typeof window.api === 'object' && window.api !== null,
+               apiKeys: window.api ? Object.keys(window.api).sort() : [],
+               mounted: Boolean(document.querySelector('.app')),
+               htmlLang: document.documentElement.lang,
+               navLabels: Array.from(document.querySelectorAll('.nav-item')).map((element) =>
+                 (element.textContent || '').trim()
+               )
+             })`
+          )
+          .then((state: unknown) => {
+            console.log('[pt-debug] renderer state:', JSON.stringify(state))
+          })
+          .catch((error: unknown) => {
+            console.error('[pt-debug] probe failed:', error)
+          })
+      }, 1500)
     })
   }
 

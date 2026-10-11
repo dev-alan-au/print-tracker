@@ -5,7 +5,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   spoolerEnabled: true,
   spoolerPollIntervalMs: 5000,
   autoStartWatching: true,
-  minFileStabilityMs: 1500
+  minFileStabilityMs: 1500,
+  language: 'system'
 }
 
 export class SettingsService {

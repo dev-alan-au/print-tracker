@@ -84,7 +84,8 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     watcher.refresh()
     events.toast({
       kind: 'success',
-      message: `Tracking "${folder.name}" - indexed ${indexed} file${indexed === 1 ? '' : 's'}.`
+      messageKey: 'toast.folderAdded',
+      messageParams: { name: folder.name, count: indexed }
     })
     events.filesChanged()
     return folder
@@ -101,7 +102,11 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     const folder = folders.get(id)
     folders.remove(id)
     watcher.refresh()
-    events.toast({ kind: 'info', message: `Stopped tracking "${folder?.name ?? id}".` })
+    events.toast({
+      kind: 'info',
+      messageKey: 'toast.folderRemoved',
+      messageParams: { name: folder?.name ?? String(id) }
+    })
     events.filesChanged()
   }
 

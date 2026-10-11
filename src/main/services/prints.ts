@@ -1,6 +1,7 @@
 import type {
   DashboardStats,
   ManualPrintInput,
+  MessageParams,
   Page,
   PrintEvent,
   PrintQuery,
@@ -23,6 +24,8 @@ interface EventRow {
   userName: string | null
   status: string | null
   note: string | null
+  noteKey: string | null
+  noteParams: string | null
   printedAt: string
   createdAt: string
 }
@@ -40,6 +43,8 @@ const SELECT_EVENT = `
          p.user_name     AS userName,
          p.status,
          p.note,
+         p.note_key      AS noteKey,
+         p.note_params   AS noteParams,
          p.printed_at    AS printedAt,
          p.created_at    AS createdAt
   FROM print_events p
@@ -67,6 +72,8 @@ function mapEvent(row: EventRow): PrintEvent {
     userName: row.userName,
     status: row.status,
     note: row.note,
+    noteKey: (row.noteKey as PrintEvent['noteKey']) ?? null,
+    noteParams: parseParams(row.noteParams),
     printedAt: row.printedAt,
     createdAt: row.createdAt
   }
@@ -74,6 +81,20 @@ function mapEvent(row: EventRow): PrintEvent {
 
 function likePattern(term: string): string {
   return `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
+}
+
+/** `note_params` is a JSON object; tolerate anything malformed or legacy. */
+function parseParams(raw: string | null): MessageParams | null {
+  if (!raw) return null
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as MessageParams
+    }
+  } catch {
+    /* fall through to null */
+  }
+  return null
 }
 
 const HISTORY_DAYS = 14
@@ -119,8 +140,9 @@ export class PrintService {
       const info = this.db.run(
         `INSERT INTO print_events
            (file_id, source, printer, document_name, copies, pages,
-            user_name, status, note, external_id, printed_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            user_name, status, note, note_key, note_params,
+            external_id, printed_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           fileId,
           toSource(input.source),
@@ -131,6 +153,8 @@ export class PrintService {
           input.userName?.trim() || null,
           input.status?.trim() || null,
           input.note?.trim() || null,
+          input.noteKey ?? null,
+          input.noteParams ? JSON.stringify(input.noteParams) : null,
           input.externalId ?? null,
           printedAt,
           nowIso()

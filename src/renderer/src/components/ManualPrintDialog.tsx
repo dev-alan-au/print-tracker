@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ToastMessage } from '@shared/types'
+import { useI18n } from '../i18n'
 import { errorMessage } from '../lib/format'
 import Modal from './Modal'
 
@@ -23,6 +24,7 @@ export default function ManualPrintDialog({
   onSaved: () => void
   onToast: (toast: ToastMessage) => void
 }) {
+  const { t } = useI18n()
   const [name, setName] = useState(documentName)
   const [printer, setPrinter] = useState('')
   const [copies, setCopies] = useState('1')
@@ -52,7 +54,7 @@ export default function ManualPrintDialog({
   const save = async (): Promise<void> => {
     const documentForEvent = fileId !== null ? name : name.trim()
     if (fileId === null && !documentForEvent) {
-      setError('Enter a document name, or pick one of the indexed files.')
+      setError(t('manual.error.document'))
       return
     }
 
@@ -68,7 +70,7 @@ export default function ManualPrintDialog({
         note: note.trim() || null,
         printedAt: new Date(when).toISOString()
       })
-      onToast({ kind: 'success', message: 'Print event recorded.' })
+      onToast({ kind: 'success', messageKey: 'manual.toast.saved' })
       onSaved()
     } catch (caught) {
       setError(errorMessage(caught))
@@ -79,15 +81,15 @@ export default function ManualPrintDialog({
 
   return (
     <Modal
-      title="Log a print"
+      title={t('manual.title')}
       onClose={onClose}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="button" className="btn primary" disabled={busy} onClick={() => void save()}>
-            {busy ? 'Saving…' : 'Record print'}
+            {busy ? t('manual.saving') : t('manual.submit')}
           </button>
         </>
       }
@@ -95,14 +97,14 @@ export default function ManualPrintDialog({
       {error ? <div className="note">{error}</div> : null}
 
       <div className="field">
-        <label htmlFor="manual-document">Document</label>
+        <label htmlFor="manual-document">{t('manual.document')}</label>
         <input
           id="manual-document"
           type="text"
           list="manual-document-options"
           value={name}
           readOnly={fileId !== null}
-          placeholder="e.g. invoice-2026-10.pdf"
+          placeholder={t('manual.documentPlaceholder')}
           onChange={(event) => setName(event.target.value)}
         />
         <datalist id="manual-document-options">
@@ -111,20 +113,18 @@ export default function ManualPrintDialog({
           ))}
         </datalist>
         {fileId === null ? (
-          <span className="hint">
-            Matching an indexed file name links this print to that file automatically.
-          </span>
+          <span className="hint">{t('manual.documentHint')}</span>
         ) : null}
       </div>
 
       <div className="field">
-        <label htmlFor="manual-printer">Printer</label>
+        <label htmlFor="manual-printer">{t('manual.printer')}</label>
         <input
           id="manual-printer"
           type="text"
           list="manual-printer-options"
           value={printer}
-          placeholder="Optional"
+          placeholder={t('common.optional')}
           onChange={(event) => setPrinter(event.target.value)}
         />
         <datalist id="manual-printer-options">
@@ -136,7 +136,7 @@ export default function ManualPrintDialog({
 
       <div className="row" style={{ alignItems: 'flex-end' }}>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor="manual-copies">Copies</label>
+          <label htmlFor="manual-copies">{t('manual.copies')}</label>
           <input
             id="manual-copies"
             type="number"
@@ -146,20 +146,20 @@ export default function ManualPrintDialog({
           />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor="manual-pages">Pages</label>
+          <label htmlFor="manual-pages">{t('manual.pages')}</label>
           <input
             id="manual-pages"
             type="number"
             min={1}
             value={pages}
-            placeholder="Optional"
+            placeholder={t('common.optional')}
             onChange={(event) => setPages(event.target.value)}
           />
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="manual-when">Printed at</label>
+        <label htmlFor="manual-when">{t('manual.printedAt')}</label>
         <input
           id="manual-when"
           type="datetime-local"
@@ -169,12 +169,12 @@ export default function ManualPrintDialog({
       </div>
 
       <div className="field">
-        <label htmlFor="manual-note">Note</label>
+        <label htmlFor="manual-note">{t('manual.note')}</label>
         <textarea
           id="manual-note"
           rows={2}
           value={note}
-          placeholder="Optional"
+          placeholder={t('common.optional')}
           onChange={(event) => setNote(event.target.value)}
         />
       </div>

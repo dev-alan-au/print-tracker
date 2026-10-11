@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FileQuery, Page, ToastMessage, TrackedFile, TrackedFolder } from '@shared/types'
+import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
 
@@ -12,6 +13,7 @@ export default function FilesPanel({
   onChanged: () => void
   onToast: (toast: ToastMessage) => void
 }) {
+  const { t, tn, locale } = useI18n()
   const [folders, setFolders] = useState<TrackedFolder[]>([])
   const [data, setData] = useState<Page<TrackedFile>>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
@@ -58,13 +60,11 @@ export default function FilesPanel({
   }, [load])
 
   const removeFromIndex = async (file: TrackedFile): Promise<void> => {
-    const confirmed = window.confirm(
-      `Remove "${file.name}" from the index?\n\nThe file on disk is not touched. Recorded print history is kept.`
-    )
+    const confirmed = window.confirm(t('files.confirmRemove', { name: file.name }))
     if (!confirmed) return
     try {
       await window.api.files.remove(file.id)
-      onToast({ kind: 'info', message: `Removed "${file.name}" from the index.` })
+      onToast({ kind: 'info', messageKey: 'files.toast.removed', messageParams: { name: file.name } })
       onChanged()
     } catch (caught) {
       onToast({ kind: 'error', message: errorMessage(caught) })
@@ -89,10 +89,10 @@ export default function FilesPanel({
     <>
       <header className="page-header">
         <div>
-          <h1>Files</h1>
+          <h1>{t('files.title')}</h1>
           <p>
-            {data.total} indexed file{data.total === 1 ? '' : 's'}
-            {loading ? ' · refreshing…' : ''}
+            {tn(data.total, 'files.count.one', 'files.count.other')}
+            {loading ? ` · ${t('common.refreshing')}` : ''}
           </p>
         </div>
       </header>
@@ -102,13 +102,13 @@ export default function FilesPanel({
           <input
             className="search"
             type="search"
-            placeholder="Search name or path…"
+            placeholder={t('files.searchPlaceholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
 
           <select value={folderId} onChange={(event) => setFolderId(event.target.value)}>
-            <option value="all">All folders</option>
+            <option value="all">{t('files.allFolders')}</option>
             {folders.map((folder) => (
               <option key={folder.id} value={String(folder.id)}>
                 {folder.name}
@@ -124,11 +124,11 @@ export default function FilesPanel({
               setDirection(nextDirection as 'asc' | 'desc')
             }}
           >
-            <option value="name:asc">Name A→Z</option>
-            <option value="name:desc">Name Z→A</option>
-            <option value="recent:desc">Recently changed</option>
-            <option value="prints:desc">Most printed</option>
-            <option value="size:desc">Largest</option>
+            <option value="name:asc">{t('files.sort.nameAsc')}</option>
+            <option value="name:desc">{t('files.sort.nameDesc')}</option>
+            <option value="recent:desc">{t('files.sort.recent')}</option>
+            <option value="prints:desc">{t('files.sort.prints')}</option>
+            <option value="size:desc">{t('files.sort.size')}</option>
           </select>
 
           <label className="check">
@@ -137,34 +137,32 @@ export default function FilesPanel({
               checked={onlyPrinted}
               onChange={(event) => setOnlyPrinted(event.target.checked)}
             />
-            printed only
+            {t('files.printedOnly')}
           </label>
 
           <span className="spacer" />
 
           <button type="button" className="btn tiny" onClick={() => void load()}>
-            Refresh
+            {t('common.refresh')}
           </button>
         </div>
 
         {data.items.length === 0 ? (
           <div className="empty">
-            <strong>{loading ? 'Loading files…' : 'No files match'}</strong>
-            {loading
-              ? null
-              : 'Add a folder to track, or loosen the filters above.'}
+            <strong>{loading ? t('files.loading') : t('files.emptyTitle')}</strong>
+            {loading ? null : t('files.emptyBody')}
           </div>
         ) : (
           <div className="panel-body flush">
             <table>
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th>Folder</th>
-                  <th className="num">Size</th>
-                  <th>Modified</th>
-                  <th className="num">Prints</th>
-                  <th>Last printed</th>
+                  <th>{t('files.table.file')}</th>
+                  <th>{t('files.table.folder')}</th>
+                  <th className="num">{t('files.table.size')}</th>
+                  <th>{t('files.table.modified')}</th>
+                  <th className="num">{t('files.table.prints')}</th>
+                  <th>{t('files.table.lastPrinted')}</th>
                   <th />
                 </tr>
               </thead>
@@ -177,15 +175,15 @@ export default function FilesPanel({
                         {file.present ? null : (
                           <>
                             {' '}
-                            <span className="badge neutral">missing</span>
+                            <span className="badge neutral">{t('files.badge.missing')}</span>
                           </>
                         )}
                       </div>
                       <div className="cell-sub">{file.path}</div>
                     </td>
-                    <td className="cell-sub">{file.folderName ?? '—'}</td>
-                    <td className="num">{formatBytes(file.size)}</td>
-                    <td className="cell-sub">{formatDateTime(file.mtime)}</td>
+                    <td className="cell-sub">{file.folderName ?? t('common.emptyValue')}</td>
+                    <td className="num">{formatBytes(file.size, locale)}</td>
+                    <td className="cell-sub">{formatDateTime(file.mtime, locale)}</td>
                     <td className="num">
                       {file.printedCount > 0 ? (
                         <span className="count-pill">{file.printedCount}</span>
@@ -193,7 +191,7 @@ export default function FilesPanel({
                         <span className="hint">0</span>
                       )}
                     </td>
-                    <td className="cell-sub">{formatRelative(file.lastPrintedAt)}</td>
+                    <td className="cell-sub">{formatRelative(file.lastPrintedAt, locale)}</td>
                     <td>
                       <div className="cell-actions">
                         <button
@@ -201,28 +199,28 @@ export default function FilesPanel({
                           className="btn tiny"
                           onClick={() => setManualFor(file)}
                         >
-                          Mark printed
+                          {t('files.markPrinted')}
                         </button>
                         <button
                           type="button"
                           className="btn tiny"
                           onClick={() => void openFile(file)}
                         >
-                          Open
+                          {t('common.open')}
                         </button>
                         <button
                           type="button"
                           className="btn tiny"
                           onClick={() => revealFile(file)}
                         >
-                          Locate
+                          {t('common.locate')}
                         </button>
                         <button
                           type="button"
                           className="btn tiny danger"
                           onClick={() => void removeFromIndex(file)}
                         >
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </div>
                     </td>
