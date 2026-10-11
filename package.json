@@ -19,7 +19,7 @@
     "test:i18n": "esbuild scripts/check-i18n.ts --bundle --platform=node --format=cjs --target=node22 --outfile=node_modules/.cache/pt-i18n.cjs --log-level=warning && node node_modules/.cache/pt-i18n.cjs",
     "test:e2e": "esbuild scripts/e2e-core.ts --bundle --platform=node --format=cjs --target=node22 --outfile=node_modules/.cache/pt-e2e.cjs --external:node-sqlite3-wasm --external:chokidar --alias:@shared=./src/shared --log-level=warning && node node_modules/.cache/pt-e2e.cjs",
     "test": "npm run test:db && npm run test:i18n && npm run test:e2e",
-    "build:win": "npm run build && electron-builder --win --config electron-builder.yml",
+    "build:win": "npm run build && electron-builder --win --publish never --config electron-builder.yml",
     "build:dir": "npm run build && electron-builder --dir --config electron-builder.yml"
   },
   "dependencies": {

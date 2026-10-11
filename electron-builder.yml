@@ -2,6 +2,19 @@ appId: com.printtracker.app
 productName: Print Tracker
 copyright: Copyright © 2026
 
+# Packaging never publishes. Releases are attached to a GitHub release by the
+# workflow's own job, which is the only place a token exists.
+#
+# This cannot be left unset. When `publish` is absent electron-builder reads the
+# git remote, concludes the provider is GitHub, and then applies an implicit
+# policy: `onTagOrDraft` whenever it detects CI, or `onTag` on a tag. For GitHub
+# that policy means it really does try to publish, so it demands GH_TOKEN and
+# fails the build with "GitHub Personal Access Token is not set". The CI Windows
+# job has no token, so it would fail on every push, not only on tags - and a
+# developer with GH_TOKEN exported would publish a release from their laptop by
+# accident. `null` disables the mechanism outright.
+publish: null
+
 directories:
   buildResources: build
   output: release

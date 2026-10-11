@@ -158,6 +158,34 @@ Pull requests only run `verify`: Windows runners are billed at a higher rate and
 a PR does not need an installer. No repository secrets are required - the release
 job uses the automatically provided `GITHUB_TOKEN`.
 
+#### Packaging never publishes (`GH_TOKEN`)
+
+`electron-builder.yml` sets `publish: null` and `build:win` passes
+`--publish never`. Both are deliberate.
+
+Left unset, electron-builder inspects the git remote, infers a GitHub provider,
+and applies an implicit policy of its own: `onTagOrDraft` as soon as it detects
+CI, or `onTag` on a tag. For GitHub that policy really does publish, so it asks
+for `GH_TOKEN` and aborts the build with:
+
+```
+⨯ GitHub Personal Access Token is not set, neither programmatically, nor using env "GH_TOKEN"
+```
+
+The `windows` job has no token - only `release` does, and it publishes with the
+`gh` CLI - so leaving this unset would fail CI on **every** push rather than only
+on tags. It also meant a developer with `GH_TOKEN` exported could publish a
+release from their own machine by running `npm run build:win`.
+
+Note that other providers are skipped when the build is not for a tag; GitHub is
+explicitly excluded from that shortcut, which is why this bites on branch builds.
+
+To publish from electron-builder deliberately, override it for one run:
+
+```bash
+GH_TOKEN=... npx electron-builder --win --publish always --config electron-builder.yml
+```
+
 ## Languages
 
 The interface ships in **English** and **Korean**. Choose one in
