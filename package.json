@@ -1,0 +1,38 @@
+{
+  "name": "print-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop app that indexes files inside watched folders and tracks when they are printed.",
+  "main": "./out/main/index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "preview": "electron-vite preview",
+    "build": "npm run typecheck && electron-vite build",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "test:db": "node scripts/smoke-db.cjs",
+    "test:e2e": "esbuild scripts/e2e-core.ts --bundle --platform=node --format=cjs --target=node22 --outfile=node_modules/.cache/pt-e2e.cjs --external:node-sqlite3-wasm --external:chokidar --alias:@shared=./src/shared --log-level=warning && node node_modules/.cache/pt-e2e.cjs",
+    "test": "npm run test:db && npm run test:e2e",
+    "build:win": "npm run build && electron-builder --win --config electron-builder.yml",
+    "build:dir": "npm run build && electron-builder --dir --config electron-builder.yml"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "node-sqlite3-wasm": "^0.8.60",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7"
+  }
+}

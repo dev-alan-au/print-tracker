@@ -1,0 +1,40 @@
+appId: com.printtracker.app
+productName: Print Tracker
+copyright: Copyright © 2026
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,npm-shrinkwrap.json,pnpm-lock.yaml,yarn.lock}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+
+# node-sqlite3-wasm loads its .wasm next to its own JS file, so it has to live
+# outside the asar archive.
+asarUnpack:
+  - '**/node_modules/node-sqlite3-wasm/**'
+
+win:
+  executableName: print-tracker
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Print Tracker
+
+linux:
+  target:
+    - AppImage
+  category: Utility
