@@ -127,6 +127,7 @@ export const ko: Catalog = {
   'files.sort.nameDesc': '이름 Z→A',
   'files.sort.recent': '최근 변경순',
   'files.sort.prints': '인쇄 많은 순',
+  'files.sort.lastPrinted': '최근 인쇄순',
   'files.sort.size': '큰 파일순',
   'files.printedOnly': '인쇄된 항목만',
   'files.loading': '파일을 불러오는 중…',

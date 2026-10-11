@@ -41,6 +41,10 @@ const v2Match = schemaSource.match(/\/\* v1 -> v2 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
 assert(v2Match, 'could not extract the v1 -> v2 migration from schema.ts')
 const SCHEMA_V2_SQL = v2Match[1]
 
+const v3Match = schemaSource.match(/\/\* v2 -> v3 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)
+assert(v3Match, 'could not extract the v2 -> v3 migration from schema.ts')
+const SCHEMA_V3_SQL = v3Match[1]
+
 const dbPath = join(ROOT, 'print-tracker.db')
 const db = new Database(dbPath)
 
@@ -233,7 +237,7 @@ check('settings key/value upsert works', () => {
   assertEqual(db.get('SELECT value FROM settings WHERE key = ?', ['spoolerPollIntervalMs']).value, '9000', 'value')
 })
 
-check('v1 -> v2 migration adds the note columns to an existing database', () => {
+check('migrations upgrade an existing database in order', () => {
   const legacyPath = join(ROOT, 'legacy.db')
   const legacy = new Database(legacyPath)
   legacy.exec(SCHEMA_SQL)
@@ -264,6 +268,15 @@ check('v1 -> v2 migration adds the note columns to an existing database', () => 
   ])
   assertEqual(row.note, 'New file detected', 'legacy note preserved')
   assertEqual(row.note_key, null, 'legacy note_key is null')
+
+  upgraded.exec('BEGIN')
+  upgraded.exec(SCHEMA_V3_SQL)
+  upgraded.exec('PRAGMA user_version = 3')
+  upgraded.exec('COMMIT')
+
+  const indexes = upgraded.all("SELECT name FROM sqlite_master WHERE type='index'").map((r) => r.name)
+  assert(indexes.includes('idx_files_last_printed'), 'expected the last-printed index')
+  assertEqual(Number(upgraded.get('PRAGMA user_version').user_version), 3, 'now at v3')
 
   upgraded.close()
 })

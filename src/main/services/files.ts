@@ -227,7 +227,8 @@ export class FileService {
       name: 'fi.name COLLATE NOCASE',
       recent: 'fi.last_seen_at',
       prints: 'fi.printed_count',
-      size: 'fi.size'
+      size: 'fi.size',
+      lastPrinted: 'fi.last_printed_at'
     }
     const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
     const orderBy = sortColumns[query.sort ?? 'name'] ?? sortColumns.name

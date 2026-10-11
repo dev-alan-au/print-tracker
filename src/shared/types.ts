@@ -63,7 +63,7 @@ export interface FileQuery {
   folderId?: number | null
   search?: string
   onlyPrinted?: boolean
-  sort?: 'name' | 'recent' | 'prints' | 'size'
+  sort?: 'name' | 'recent' | 'prints' | 'size' | 'lastPrinted'
   direction?: 'asc' | 'desc'
   limit?: number
   offset?: number

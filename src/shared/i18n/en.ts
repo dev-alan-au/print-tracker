@@ -124,6 +124,7 @@ export const en = {
   'files.sort.nameDesc': 'Name Z→A',
   'files.sort.recent': 'Recently changed',
   'files.sort.prints': 'Most printed',
+  'files.sort.lastPrinted': 'Last printed',
   'files.sort.size': 'Largest',
   'files.printedOnly': 'printed only',
   'files.loading': 'Loading files…',

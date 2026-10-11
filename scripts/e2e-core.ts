@@ -133,6 +133,23 @@ async function main(): Promise<void> {
   check('file print counter increments', () => eq(files.get(invoice.id)?.printedCount, 1, 'printedCount'))
   check('print filters by source', () => eq(prints.list({ source: 'manual' }).total, 1, 'manual count'))
 
+  /* ------------------------------------------- last printed is queryable */
+
+  check('files can be ordered by when they were last printed', () => {
+    const page = files.list({ sort: 'lastPrinted', direction: 'desc', limit: 10 })
+    assert(page.items.length > 0, 'expected files')
+    assert(
+      page.items[0].lastPrintedAt !== null,
+      'the most recently printed file should sort first'
+    )
+  })
+
+  check('ordering by last printed puts never-printed files last', () => {
+    const page = files.list({ sort: 'lastPrinted', direction: 'desc', limit: 10 })
+    const last = page.items[page.items.length - 1]
+    eq(last.lastPrintedAt, null, 'never-printed file sorts last')
+  })
+
   /* ----------------------------------------------- spooler degradation */
 
   const spooler = new SpoolerService(files, prints, {

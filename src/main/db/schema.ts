@@ -5,7 +5,7 @@
  * Never edit an existing entry once it has shipped - append a new one instead.
  */
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export const MIGRATIONS: readonly string[] = [
   /* v0 -> v1 : initial schema */
@@ -72,5 +72,13 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE print_events ADD COLUMN note_key    TEXT;
   ALTER TABLE print_events ADD COLUMN note_params TEXT;
+  `,
+
+  /* v2 -> v3 : "when was this file last printed" is now a first-class question,
+     so make ordering and date range filtering on it cheap. No column changes,
+     which keeps older backups restorable. */
+  `
+  CREATE INDEX IF NOT EXISTS idx_files_last_printed
+    ON files(last_printed_at DESC);
   `
 ]

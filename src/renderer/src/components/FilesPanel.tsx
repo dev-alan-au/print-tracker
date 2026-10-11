@@ -128,6 +128,7 @@ export default function FilesPanel({
             <option value="name:desc">{t('files.sort.nameDesc')}</option>
             <option value="recent:desc">{t('files.sort.recent')}</option>
             <option value="prints:desc">{t('files.sort.prints')}</option>
+            <option value="lastPrinted:desc">{t('files.sort.lastPrinted')}</option>
             <option value="size:desc">{t('files.sort.size')}</option>
           </select>
 
