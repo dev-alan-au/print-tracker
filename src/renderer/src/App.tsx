@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { type AppLanguage, type Locale, type MessageKey, resolveLocale } from '@shared/i18n'
+import { type AppLanguage, type Locale, type MessageKey, LOCALES, LOCALE_LABELS, resolveLocale } from '@shared/i18n'
 import type { AppSettings, DashboardStats, SpoolerStatus, ToastMessage } from '@shared/types'
 import Dashboard from './components/Dashboard'
 import FilesPanel from './components/FilesPanel'
@@ -184,6 +184,22 @@ export default function App() {
         </nav>
 
         <div className="sidebar-footer">
+          <select
+            className="lang-switch"
+            aria-label={i18n.t('settings.appearance.language')}
+            value={language}
+            onChange={(event) =>
+              void updateSettings({ language: event.target.value as AppLanguage })
+            }
+          >
+            <option value="system">{i18n.t('settings.appearance.system')}</option>
+            {LOCALES.map((entry) => (
+              <option key={entry} value={entry}>
+                {LOCALE_LABELS[entry]}
+              </option>
+            ))}
+          </select>
+
           <div>
             <span className={`status-dot ${spoolerStatus?.running ? 'on' : 'off'}`} />
             {spoolerStatus?.running

@@ -160,6 +160,14 @@ code {
   padding: 0 6px;
 }
 
+/* Quick language swap, kept in the sidebar so it is always one click away. */
+.lang-switch {
+  width: 100%;
+  padding: 4px 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
 .status-dot {
   display: inline-block;
   width: 7px;
