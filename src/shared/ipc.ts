@@ -16,6 +16,7 @@ export const IPC = {
     reveal: 'files:reveal',
     remove: 'files:remove',
     markPrinted: 'files:mark-printed',
+    directories: 'files:directories',
     print: 'files:print',
     method: 'files:print-method',
     listPrinters: 'files:list-printers'

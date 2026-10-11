@@ -77,6 +77,34 @@ A file in an output folder is only counted once it has stopped changing for
 `minFileStabilityMs` (default 1.5 s), so multi-pass writes do not produce
 duplicate prints.
 
+### Filtering by folder and subfolder
+
+The **Files** screen's folder filter offers each tracked folder under its own
+group, with the subfolders inside it:
+
+```
+All folders
+  library
+    Everything in this folder
+    reports (1)
+  output
+```
+
+Filtering by the folder was always enough to see the files in its
+subdirectories, because every file a recursive scan finds shares that folder's
+id. The extra options narrow that down to one directory, and each one is a path
+prefix, so picking `reports` also covers `reports/2026`.
+
+Two details worth knowing:
+
+- Subfolders are derived from the **indexed file rows**, not by walking the
+  disk. The filter can therefore never offer a directory that turns out to be
+  empty, and the count beside it matches what you will see.
+- The prefix test uses `substr` rather than `LIKE`. On Windows the path
+  separator is the same character as `LIKE`'s escape, which makes a pattern for
+  a Windows path a trap, and a directory named `nestedish` must not be swept in
+  by a filter for `nested`.
+
 ## Requirements
 
 - Node.js **20.19+ or 22.12+** (developed on Node 22)

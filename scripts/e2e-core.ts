@@ -6,7 +6,7 @@
  * throwaway directory tree.
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { Database } from 'node-sqlite3-wasm'
 import { Db } from '../src/main/db/database'
 import { BackupService } from '../src/main/services/backups'
@@ -109,6 +109,107 @@ async function main(): Promise<void> {
 
   const out = folders.add({ path: output, kind: 'output' })
   check('output folder scan indexes its file', () => eq(files.scanFolder(out), 1, 'indexed'))
+
+  /* -------------------------------------------------- folder and subfolder */
+
+  check('a watched folder filter already covers its subdirectories', () => {
+    // Every file under a recursive folder shares its folder_id, so filtering by
+    // the folder is enough to reach the nested files.
+    const page = files.list({ folderId: lib.id })
+    eq(page.total, 2, 'both the root and the nested file')
+    assert(
+      page.items.some((file) => file.path.includes('nested')),
+      'expected the nested file to be included'
+    )
+  })
+
+  check('subdirectories are listed with a relative label and a count', () => {
+    const dirs = files.directories(lib.id)
+    eq(dirs.length, 1, 'one subdirectory')
+    eq(dirs[0].label, 'nested', 'label is relative to the watched folder')
+    eq(dirs[0].fileCount, 1, 'files inside it')
+    // The folder root is what the folder option covers, so it must not appear.
+    assert(
+      !dirs.some((entry) => entry.path === lib.path),
+      'the watched folder itself is not a subdirectory'
+    )
+  })
+
+  check('the global directory list is grouped by watched folder', () => {
+    const dirs = files.directories()
+    assert(
+      dirs.every((entry) => entry.folderId === lib.id),
+      'only the folder that has subdirectories should appear'
+    )
+  })
+
+  check('scoping to a subdirectory excludes the folder root', () => {
+    const nested = files.directories(lib.id)[0]
+    const page = files.list({ directory: nested.path })
+    eq(page.total, 1, 'only the nested file')
+    eq(page.items[0].name, 'report-b.docx', 'the nested file')
+  })
+
+  // A tree of its own for the nesting and prefix cases. Adding to the shared
+  // fixtures would change the counts that later checks assert, so this one is
+  // built, used, and removed again.
+  const tree = join(ROOT, 'tree')
+  mkdirSync(join(tree, 'nested', 'deeper'), { recursive: true })
+  mkdirSync(join(tree, 'nestedish'), { recursive: true })
+  writeFileSync(join(tree, 'top.pdf'), 't')
+  writeFileSync(join(tree, 'nested', 'mid.docx'), 'm')
+  writeFileSync(join(tree, 'nested', 'deeper', 'deep.txt'), 'd')
+  writeFileSync(join(tree, 'nestedish', 'trap.txt'), 'x')
+  const treeFolder = folders.add({ path: tree, kind: 'library' })
+  check('the tree fixture is indexed', () => eq(files.scanFolder(treeFolder), 4, 'indexed'))
+
+  check('a subdirectory scope includes anything deeper below it', () => {
+    // Proves the match is a path prefix rather than just the immediate parent.
+    const nested = files.directories(treeFolder.id).find((entry) => entry.label === 'nested')
+    assert(nested, 'expected the nested directory')
+
+    const page = files.list({ directory: nested.path })
+    eq(page.total, 2, 'both the direct and the deeper file')
+    assert(page.items.some((file) => file.name === 'mid.docx'), 'the direct child')
+    assert(page.items.some((file) => file.name === 'deep.txt'), 'the deeper child')
+    eq(
+      files
+        .directories(treeFolder.id)
+        .find((entry) => entry.label === join('nested', 'deeper'))?.fileCount,
+      1,
+      'the deeper directory is offered in its own right'
+    )
+  })
+
+  check('a trailing separator on the scoped directory is tolerated', () => {
+    const nested = files.directories(treeFolder.id).find((entry) => entry.label === 'nested')
+    assert(nested, 'expected the nested directory')
+    eq(
+      files.list({ directory: `${nested.path}${sep}` }).total,
+      2,
+      'trailing separator ignored'
+    )
+  })
+
+  check('a sibling directory sharing a prefix is not swept in', () => {
+    // "nestedish" shares a prefix with "nested" but is a different directory.
+    const nested = files.directories(treeFolder.id).find((entry) => entry.label === 'nested')
+    assert(nested, 'expected the nested directory')
+
+    const page = files.list({ directory: nested.path })
+    eq(page.total, 2, 'the sibling must not be swept in')
+    assert(
+      !page.items.some((file) => file.name === 'trap.txt'),
+      'a directory sharing a prefix is a different directory'
+    )
+  })
+
+  // Leave the shared fixtures exactly as this block found them.
+  folders.remove(treeFolder.id)
+  check('the tree fixture is removed again', () => {
+    eq(folders.list().length, 2, 'library and output only')
+    eq(files.list({ search: 'deep' }).total, 0, 'and its files went with it')
+  })
 
   /* ------------------------------------------------- watcher semantics */
 

@@ -230,6 +230,47 @@ function createWindow(): void {
                 }
               }
 
+              // `PT_DEBUG_FILTER=<option value>` selects a folder or subfolder
+              // in the folder filter, so the narrowed list can be seen.
+              const filterValue = process.env['PT_DEBUG_FILTER']
+              if (filterValue && tabs[index] === 'files') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const select = document.querySelector('.panel-head select')
+                     if (!select) return 'missing'
+                     const setter = Object.getOwnPropertyDescriptor(
+                       window.HTMLSelectElement.prototype, 'value'
+                     ).set
+                     setter.call(select, ${JSON.stringify(filterValue)})
+                     select.dispatchEvent(new Event('change', { bubbles: true }))
+                     return select.value
+                   })()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 900))
+              }
+
+              // A native select renders its list outside the page, so the
+              // option structure is logged rather than screenshotted.
+              if (tabs[index] === 'files') {
+                const filters: unknown = await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const select = document.querySelector('.panel-head select')
+                     if (!select) return null
+                     return Array.from(select.children).map((node) =>
+                       node.tagName === 'OPTGROUP'
+                         ? {
+                             group: node.label,
+                             options: Array.from(node.children).map((child) =>
+                               (child.textContent || '').trim()
+                             )
+                           }
+                         : { option: (node.textContent || '').trim() }
+                     )
+                   })()`
+                )
+                console.log('[pt-debug] folder filter:', JSON.stringify(filters))
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`

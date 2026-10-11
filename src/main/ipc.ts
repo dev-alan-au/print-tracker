@@ -95,6 +95,12 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     ctx.files.remove(asId(id))
   })
 
+  ipcMain.handle(IPC.files.directories, (_event, folderId: unknown) => {
+    // Null rather than a missing argument means "every folder".
+    if (folderId === null || folderId === undefined) return ctx.files.directories()
+    return ctx.files.directories(asId(folderId))
+  })
+
   ipcMain.handle(IPC.files.markPrinted, (_event, input: unknown) =>
     ctx.prints.addManual(asObject<ManualPrintInput>(input))
   )

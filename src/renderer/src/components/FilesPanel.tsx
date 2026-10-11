@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { FileQuery, Page, ToastMessage, TrackedFile, TrackedFolder } from '@shared/types'
+import type {
+  FileQuery,
+  FolderDirectory,
+  Page,
+  ToastMessage,
+  TrackedFile,
+  TrackedFolder
+} from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
@@ -22,7 +29,12 @@ export default function FilesPanel({
 
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [folderId, setFolderId] = useState<string>('all')
+  /**
+   * What the folder filter is scoped to: `all`, `folder:<id>`, or
+   * `dir:<absolute path>` for a subfolder of one of them.
+   */
+  const [scope, setScope] = useState('all')
+  const [directories, setDirectories] = useState<FolderDirectory[]>([])
   const [onlyPrinted, setOnlyPrinted] = useState(false)
   const [sort, setSort] = useState<NonNullable<FileQuery['sort']>>('name')
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc')
@@ -39,25 +51,38 @@ export default function FilesPanel({
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [folderList, page] = await Promise.all([
+      // Parsed here rather than in state, so the scope stays a plain string for
+      // the select while the query gets the shape it wants. Anything this does
+      // not recognise - including the empty string a select reports when its
+      // value is unknown - means "no folder filter" rather than a filter that
+      // silently matches nothing.
+      const scopeQuery: FileQuery = scope.startsWith('dir:')
+        ? { directory: scope.slice('dir:'.length) }
+        : scope.startsWith('folder:')
+          ? { folderId: Number(scope.slice('folder:'.length)) }
+          : {}
+
+      const [folderList, page, dirs] = await Promise.all([
         window.api.folders.list(),
         window.api.files.list({
-          folderId: folderId === 'all' ? null : Number(folderId),
+          ...scopeQuery,
           search: debouncedSearch,
           printed: onlyPrinted ? 'printed' : undefined,
           sort,
           direction,
           limit: 500
-        })
+        }),
+        window.api.files.directories()
       ])
       setFolders(folderList)
       setData(page)
+      setDirectories(dirs)
     } catch (caught) {
       onToast({ kind: 'error', message: errorMessage(caught) })
     } finally {
       setLoading(false)
     }
-  }, [folderId, debouncedSearch, onlyPrinted, sort, direction, onToast, refreshToken])
+  }, [scope, debouncedSearch, onlyPrinted, sort, direction, onToast, refreshToken])
 
   useEffect(() => {
     void load()
@@ -141,13 +166,32 @@ export default function FilesPanel({
             onChange={(event) => setSearch(event.target.value)}
           />
 
-          <select value={folderId} onChange={(event) => setFolderId(event.target.value)}>
+          <select value={scope} onChange={(event) => setScope(event.target.value)}>
             <option value="all">{t('files.allFolders')}</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={String(folder.id)}>
-                {folder.name}
-              </option>
-            ))}
+            {folders.map((folder) => {
+              const subfolders = directories.filter((entry) => entry.folderId === folder.id)
+              // A folder with nothing nested needs no group around one option.
+              if (subfolders.length === 0) {
+                return (
+                  <option key={folder.id} value={`folder:${folder.id}`}>
+                    {folder.name}
+                  </option>
+                )
+              }
+              return (
+                <optgroup key={folder.id} label={folder.name}>
+                  <option value={`folder:${folder.id}`}>{t('files.wholeFolder')}</option>
+                  {subfolders.map((entry) => (
+                    <option key={entry.path} value={`dir:${entry.path}`}>
+                      {t('files.directoryOption', {
+                        name: entry.label,
+                        count: entry.fileCount
+                      })}
+                    </option>
+                  ))}
+                </optgroup>
+              )
+            })}
           </select>
 
           <select

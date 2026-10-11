@@ -52,7 +52,7 @@ export const en = {
     'These are the folders Print Tracker keeps an eye on. Add a folder once and the files inside it are listed for you.\n\nYour files are never copied, moved or changed. The app only remembers details about them, such as the name, the size and when they were last printed.\n\nA Library folder is simply listed. An Output folder also treats every new file that appears in it as something you printed, which suits printing that saves files into a folder. Rescan makes the app read a folder again.',
 
   'help.files':
-    'Every file Print Tracker has found in the folders you added.\n\nType in the search box to find a file by its name or by the folder it sits in. The list can also be sorted and filtered.\n\nA missing label means the file is no longer where the app last saw it, usually because it was moved, renamed or deleted outside the app. You can open a file, show it in its folder, or record a print for it yourself.',
+    'Every file Print Tracker has found in the folders you added.\n\nType in the search box to find a file by its name or by the folder it sits in. The list can also be sorted and filtered, and the folder filter can be narrowed to a subfolder of a tracked folder.\n\nA missing label means the file is no longer where the app last saw it, usually because it was moved, renamed or deleted outside the app. You can open a file, show it in its folder, or record a print for it yourself.',
 
   'help.history':
     'A list of every print Print Tracker knows about, newest first.\n\nThe small tag on each row says how the print was noticed: a folder you asked the app to watch, the print log kept by Windows, or your own entry added by hand.\n\nDeleting a row only removes it from this list. It never touches the file itself.',
@@ -198,6 +198,8 @@ export const en = {
   'files.count.other': '{count} indexed files',
   'files.searchPlaceholder': 'Search file name, folder or path…',
   'files.allFolders': 'All folders',
+  'files.wholeFolder': 'Everything in this folder',
+  'files.directoryOption': '{name} ({count})',
   'files.sort.nameAsc': 'Name A→Z',
   'files.sort.nameDesc': 'Name Z→A',
   'files.sort.recent': 'Recently changed',

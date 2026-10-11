@@ -41,6 +41,22 @@ export interface UpdateFolderInput {
   enabled?: boolean
 }
 
+/* ---------------------------------------------------------------- folders */
+
+/**
+ * A directory that actually holds indexed files, derived from the file rows
+ * rather than by walking the disk - so the filter can never offer a folder that
+ * turns out to be empty, and it costs nothing to refresh.
+ */
+export interface FolderDirectory {
+  folderId: number
+  /** Absolute path, which is what a file query filters on. */
+  path: string
+  /** Path relative to the watched folder, for display. */
+  label: string
+  fileCount: number
+}
+
 /* -------------------------------------------------------------------- files */
 
 export interface TrackedFile {
@@ -61,6 +77,11 @@ export interface TrackedFile {
 
 export interface FileQuery {
   folderId?: number | null
+  /**
+   * Restrict to files inside this directory and everything below it. Absolute,
+   * as stored on the file rows. Ignored when empty.
+   */
+  directory?: string
   search?: string
   /** Restrict to files that have, or have never, been printed. */
   printed?: 'printed' | 'unprinted'
@@ -387,6 +408,7 @@ export interface PrintTrackerApi {
     reveal(id: number): Promise<void>
     remove(id: number): Promise<void>
     markPrinted(input: ManualPrintInput): Promise<PrintEvent>
+    directories(folderId?: number | null): Promise<FolderDirectory[]>
     print(input: PrintRequestInput): Promise<PrintReport>
     method(): Promise<PrintMethod>
     listPrinters(): Promise<PrinterInfo[]>

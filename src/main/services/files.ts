@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from 'node:fs'
 import type { Stats } from 'node:fs'
-import { basename, extname, join } from 'node:path'
-import type { FileQuery, Page, TrackedFile } from '@shared/types'
+import { basename, dirname, extname, join, relative, sep } from 'node:path'
+import type { FileQuery, FolderDirectory, Page, TrackedFile } from '@shared/types'
 import type { Db } from '../db/database'
 import { nowIso } from '../util/time'
 import type { TrackedFolder } from '@shared/types'
@@ -221,6 +221,15 @@ export class FileService {
       where.push('fi.folder_id = ?')
       params.push(query.folderId)
     }
+    if (query.directory && query.directory.trim()) {
+      // Trailing separators would make the prefix test fail, so normalise them
+      // away. `substr` rather than LIKE: on Windows the path separator is the
+      // same character as LIKE's escape, which turns the pattern into a trap.
+      const dir = query.directory.trim().replace(/[\\/]+$/, '')
+      const prefix = `${dir}${sep}`
+      where.push('(fi.path = ? OR substr(fi.path, 1, ?) = ?)')
+      params.push(dir, prefix.length, prefix)
+    }
     if (query.search && query.search.trim()) {
       // The folder's display name and on-disk path are searched alongside the
       // file itself, so typing a folder name ("Client Reports") finds every
@@ -312,6 +321,48 @@ export class FileService {
     }
 
     return undefined
+  }
+
+  /**
+   * Every directory that currently holds indexed files, per watched folder.
+   *
+   * Derived from the file rows instead of walking the disk: the filter can then
+   * never offer a directory with nothing in it, and the counts match the list.
+   */
+  directories(folderId?: number | null): FolderDirectory[] {
+    const scoped = folderId !== undefined && folderId !== null
+    const rows = this.db.all<{ path: string; folderId: number | null; folderPath: string | null }>(
+      `SELECT fi.path, fi.folder_id AS folderId, fo.path AS folderPath
+         FROM files fi
+         LEFT JOIN folders fo ON fo.id = fi.folder_id
+        ${scoped ? 'WHERE fi.folder_id = ?' : ''}`,
+      scoped ? [folderId] : []
+    )
+
+    const buckets = new Map<string, FolderDirectory>()
+    for (const row of rows) {
+      if (row.folderId === null || row.folderPath === null) continue
+
+      const directory = dirname(row.path)
+      // A file sitting in the folder root is what the folder option already
+      // covers, so it is not a subdirectory.
+      if (directory === row.folderPath) continue
+
+      const key = `${row.folderId}\u0000${directory}`
+      const existing = buckets.get(key)
+      if (existing) {
+        existing.fileCount += 1
+        continue
+      }
+      buckets.set(key, {
+        folderId: row.folderId,
+        path: directory,
+        label: relative(row.folderPath, directory) || directory,
+        fileCount: 1
+      })
+    }
+
+    return [...buckets.values()].sort((a, b) => a.label.localeCompare(b.label))
   }
 
   count(): number {

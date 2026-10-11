@@ -7,6 +7,7 @@ import type {
   BackupEntry,
   DashboardStats,
   FileQuery,
+  FolderDirectory,
   ManualPrintInput,
   Page,
   PrintEvent,
@@ -59,6 +60,8 @@ const api: PrintTrackerApi = {
     remove: (id: number) => ipcRenderer.invoke(IPC.files.remove, id) as Promise<void>,
     markPrinted: (input: ManualPrintInput) =>
       ipcRenderer.invoke(IPC.files.markPrinted, input) as Promise<PrintEvent>,
+    directories: (folderId?: number | null) =>
+      ipcRenderer.invoke(IPC.files.directories, folderId ?? null) as Promise<FolderDirectory[]>,
     print: (input: PrintRequestInput) =>
       ipcRenderer.invoke(IPC.files.print, input) as Promise<PrintReport>,
     method: () => ipcRenderer.invoke(IPC.files.method) as Promise<PrintMethod>,
