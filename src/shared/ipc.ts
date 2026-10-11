@@ -15,7 +15,10 @@ export const IPC = {
     open: 'files:open',
     reveal: 'files:reveal',
     remove: 'files:remove',
-    markPrinted: 'files:mark-printed'
+    markPrinted: 'files:mark-printed',
+    print: 'files:print',
+    method: 'files:print-method',
+    listPrinters: 'files:list-printers'
   },
   prints: {
     list: 'prints:list',

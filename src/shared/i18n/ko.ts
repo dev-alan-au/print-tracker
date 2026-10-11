@@ -27,6 +27,7 @@ export const ko: Catalog = {
 
   /* --------------------------------------------------------------- common */
   'common.cancel': '취소',
+  'common.close': '닫기',
   'common.refresh': '새로 고침',
   'common.delete': '삭제',
   'common.open': '열기',
@@ -68,6 +69,42 @@ export const ko: Catalog = {
   'source.watcher': '폴더 감시',
   'source.spooler': '스풀러',
   'source.manual': '수동',
+  'source.app': '앱에서 인쇄',
+
+  /* -------------------------------------------------------------- printing */
+  'print.title': '파일 인쇄',
+  'print.intro':
+    '각 파일은 평소에 그 파일을 인쇄하는 프로그램을 통해 운영체제로 전달됩니다. 운영체제가 작업을 접수한 뒤에만 인쇄가 시작되며, 접수된 파일은 인쇄 기록에 남습니다.',
+  'print.printer': '프린터',
+  'print.defaultPrinter': '시스템 기본값',
+  'print.printerUnknown': '프린터를 찾지 못해 시스템 기본 프린터를 사용합니다.',
+  'print.copies': '매수',
+  'print.submit': '인쇄',
+  'print.submitting': '전송 중…',
+  'print.selected.one': '{count}개 파일 인쇄 준비됨',
+  'print.selected.other': '{count}개 파일 인쇄 준비됨',
+  'print.result.ok': '프린터로 전송됨',
+  'print.result.failed': '인쇄되지 않음',
+  'print.result.summary': '파일 {total}개 중 {ok}개를 프린터로 보냈습니다.',
+  'print.unsupported.title': '이 환경에서는 인쇄할 수 없습니다',
+  'print.unsupported.body':
+    '이 컴퓨터에서는 Print Tracker가 프린터로 파일을 보낼 수 없습니다. 원래 사용하는 프로그램에서 인쇄한 뒤 "인쇄로 표시"를 사용해 기록하세요.',
+
+  'files.selected.one': '{count}개 선택됨',
+  'files.selected.other': '{count}개 선택됨',
+  'files.selectAll': '이 페이지의 모든 파일 선택',
+  'files.selectFile': '{name} 선택',
+  'files.clearSelection': '선택 해제',
+  'files.printSelected': '선택 항목 인쇄…',
+
+  'print.error.unsupported': '이 컴퓨터에서는 Print Tracker로 인쇄할 수 없습니다.',
+  'print.error.unknown': '이 파일은 더 이상 색인에 없습니다.',
+  'print.error.missing': '파일이 기록된 위치에 없습니다.',
+  'print.error.noHandler': '이 컴퓨터에는 이 파일 형식을 인쇄할 수 있는 프로그램이 없습니다.',
+
+  'print.toast.queued': '파일 {count}개를 프린터로 보냈습니다.',
+  'print.toast.partial': '{total}개 중 {ok}개를 보냈고, 나머지는 인쇄하지 못했습니다.',
+  'print.toast.none': '프린터로 보낸 파일이 없습니다.',
 
   'unit.prints.one': '{count}회 인쇄',
   'unit.prints.other': '{count}회 인쇄',
@@ -97,6 +134,7 @@ export const ko: Catalog = {
   'dashboard.sources.watcher': '출력 폴더에 나타난 파일',
   'dashboard.sources.spooler': 'Windows 인쇄 큐 및 이벤트 로그',
   'dashboard.sources.manual': '직접 기록',
+  'dashboard.sources.app': 'Print Tracker에서 인쇄',
 
   'dashboard.top.title': '가장 많이 인쇄됨',
   'dashboard.top.emptyTitle': '아직 기록된 인쇄가 없습니다',

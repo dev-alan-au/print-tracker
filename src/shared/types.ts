@@ -70,10 +70,53 @@ export interface FileQuery {
   offset?: number
 }
 
-/* ------------------------------------------------------------ print events */
+/* ---------------------------------------------------------------- printing */
 
-/** How a print event was captured. */
-export type PrintSource = 'watcher' | 'spooler' | 'manual'
+/** How a print job was handed to the operating system. */
+export type PrintMethod =
+  /** Windows: ShellExecute through the registered "print"/"printto" verb. */
+  | 'windows'
+  /** macOS and Linux: the CUPS `lp` command. */
+  | 'cups'
+  /** Neither is available, so the app cannot print. */
+  | 'unsupported'
+
+export interface PrinterInfo {
+  name: string
+  /** The printer the operating system would use by default. */
+  isDefault: boolean
+}
+
+export interface PrintRequestInput {
+  fileIds: number[]
+  /** Printer name, or null/omitted for the system default. */
+  printer?: string | null
+  copies?: number
+}
+
+/** Per-file outcome, so a batch can report partial success. */
+export interface PrintFileResult {
+  fileId: number
+  name: string
+  ok: boolean
+  /** Translatable reason, when the failure is one we can describe. */
+  errorKey?: MessageKey
+  /** Raw message from the operating system; not translatable. */
+  error?: string
+}
+
+export interface PrintReport {
+  method: PrintMethod
+  /** The printer used, when the system reports one. */
+  printer: string | null
+  results: PrintFileResult[]
+}
+
+/* ------------------------------------------------------------- print events */
+
+/** How a print event was captured. `app` means the print was started from
+ *  inside Print Tracker, rather than observed after the fact. */
+export type PrintSource = 'watcher' | 'spooler' | 'manual' | 'app'
 
 export interface PrintEvent {
   id: number
@@ -344,6 +387,9 @@ export interface PrintTrackerApi {
     reveal(id: number): Promise<void>
     remove(id: number): Promise<void>
     markPrinted(input: ManualPrintInput): Promise<PrintEvent>
+    print(input: PrintRequestInput): Promise<PrintReport>
+    method(): Promise<PrintMethod>
+    listPrinters(): Promise<PrinterInfo[]>
   }
   prints: {
     list(query: PrintQuery): Promise<Page<PrintEvent>>

@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 import ManualPrintDialog from './ManualPrintDialog'
 import PageHelp from './PageHelp'
+import PrintDialog from './PrintDialog'
 
 export default function FilesPanel({
   refreshToken,
@@ -27,6 +28,8 @@ export default function FilesPanel({
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc')
 
   const [manualFor, setManualFor] = useState<TrackedFile | null>(null)
+  const [selected, setSelected] = useState<ReadonlySet<number>>(new Set())
+  const [printOpen, setPrintOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 250)
@@ -85,6 +88,35 @@ export default function FilesPanel({
       onToast({ kind: 'error', message: errorMessage(caught) })
     })
   }
+
+  const toggleOne = (id: number): void => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  /**
+   * Selection is kept across reloads but pruned to what is on screen, so a
+   * file that scrolled out of the filter cannot be printed by accident.
+   */
+  const visibleIds = data.items.map((file) => file.id)
+  const selectedVisible = visibleIds.filter((id) => selected.has(id))
+  const allVisibleSelected =
+    visibleIds.length > 0 && selectedVisible.length === visibleIds.length
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected
+
+  useEffect(() => {
+    setSelected((current) => {
+      if (current.size === 0) return current
+      const allowed = new Set(visibleIds)
+      const next = new Set([...current].filter((id) => allowed.has(id)))
+      return next.size === current.size ? current : next
+    })
+    // Keyed on the page itself: `visibleIds` is derived from it every render.
+  }, [data.items])
 
   return (
     <>
@@ -150,6 +182,23 @@ export default function FilesPanel({
           </button>
         </div>
 
+        {selectedVisible.length > 0 ? (
+          <div className="selection-bar">
+            <strong>{tn(selectedVisible.length, 'files.selected.one', 'files.selected.other')}</strong>
+            <button
+              type="button"
+              className="btn tiny primary"
+              onClick={() => setPrintOpen(true)}
+            >
+              {t('files.printSelected')}
+            </button>
+            <span className="spacer" />
+            <button type="button" className="btn tiny ghost" onClick={() => setSelected(new Set())}>
+              {t('files.clearSelection')}
+            </button>
+          </div>
+        ) : null}
+
         {data.items.length === 0 ? (
           <div className="empty">
             <strong>{loading ? t('files.loading') : t('files.emptyTitle')}</strong>
@@ -160,6 +209,19 @@ export default function FilesPanel({
             <table>
               <thead>
                 <tr>
+                  <th className="pick">
+                    <input
+                      type="checkbox"
+                      aria-label={t('files.selectAll')}
+                      checked={allVisibleSelected}
+                      ref={(node) => {
+                        if (node) node.indeterminate = someVisibleSelected
+                      }}
+                      onChange={(event) =>
+                        setSelected(event.target.checked ? new Set(visibleIds) : new Set())
+                      }
+                    />
+                  </th>
                   <th>{t('files.table.file')}</th>
                   <th>{t('files.table.folder')}</th>
                   <th className="num">{t('files.table.size')}</th>
@@ -171,7 +233,15 @@ export default function FilesPanel({
               </thead>
               <tbody>
                 {data.items.map((file) => (
-                  <tr key={file.id}>
+                  <tr key={file.id} className={selected.has(file.id) ? 'is-selected' : undefined}>
+                    <td className="pick">
+                      <input
+                        type="checkbox"
+                        aria-label={t('files.selectFile', { name: file.name })}
+                        checked={selected.has(file.id)}
+                        onChange={() => toggleOne(file.id)}
+                      />
+                    </td>
                     <td>
                       <div className="cell-main">
                         {file.name}
@@ -244,6 +314,15 @@ export default function FilesPanel({
             setManualFor(null)
             onChanged()
           }}
+          onToast={onToast}
+        />
+      ) : null}
+
+      {printOpen ? (
+        <PrintDialog
+          fileIds={selectedVisible}
+          onClose={() => setPrintOpen(false)}
+          onPrinted={onChanged}
           onToast={onToast}
         />
       ) : null}

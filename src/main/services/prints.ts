@@ -60,7 +60,7 @@ const SELECT_EVENT = `
   ${FROM_EVENT}
 `
 
-const SOURCES: PrintSource[] = ['watcher', 'spooler', 'manual']
+const SOURCES: PrintSource[] = ['watcher', 'spooler', 'manual', 'app']
 
 function toSource(value: unknown): PrintSource {
   return SOURCES.includes(value as PrintSource) ? (value as PrintSource) : 'manual'
@@ -108,6 +108,18 @@ function parseParams(raw: string | null): MessageParams | null {
 
 const HISTORY_DAYS = 14
 
+/**
+ * How long a print started from inside the app suppresses an echo of itself.
+ *
+ * Printing from the app and monitoring the Windows spooler are not exclusive:
+ * the spooler sees every job, including the ones this app queued, so without
+ * this the history would show two entries and a doubled counter for a single
+ * print. Generous, because the spooler polls on an interval rather than
+ * instantly; the cost of the window being too long is that a genuine reprint of
+ * the same file within it is missed.
+ */
+const ECHO_WINDOW_MS = 60_000
+
 export class PrintService {
   constructor(private readonly db: Db) {}
 
@@ -121,6 +133,8 @@ export class PrintService {
    * `externalId`) has already been seen.
    */
   record(input: RecordPrintInput): PrintEvent | null {
+    if (this.isEchoOfAppPrint(input)) return null
+
     if (input.externalId) {
       const duplicate = this.db.get<{ id: number }>(
         'SELECT id FROM print_events WHERE external_id = ?',
@@ -257,6 +271,25 @@ export class PrintService {
         WHERE id = ?`,
       [fileId, fileId, fileId]
     )
+  }
+
+  /**
+   * True when an automatically detected print is really the app reporting its
+   * own print job back to itself. Manual entries are never suppressed - the
+   * user saying "this was printed" outranks any inference.
+   */
+  private isEchoOfAppPrint(input: RecordPrintInput): boolean {
+    if (input.source !== 'spooler' && input.source !== 'watcher') return false
+    if (input.fileId === undefined || input.fileId === null) return false
+
+    const since = new Date(Date.now() - ECHO_WINDOW_MS).toISOString()
+    const row = this.db.get<{ c: number }>(
+      `SELECT COUNT(*) AS c
+         FROM print_events
+        WHERE file_id = ? AND source = 'app' AND printed_at >= ?`,
+      [input.fileId, since]
+    )
+    return Number(row?.c ?? 0) > 0
   }
 
   list(query: PrintQuery): Page<PrintEvent> {

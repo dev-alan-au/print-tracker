@@ -186,6 +186,50 @@ function createWindow(): void {
                 await new Promise((resolve) => setTimeout(resolve, 300))
               }
 
+              // `PT_DEBUG_SELECT=<n>` ticks the first n file rows, and
+              // `PT_DEBUG_PRINT=1` then opens the print dialog for them. A
+              // checkbox click is enough for React to see the change.
+              const selectRows = process.env['PT_DEBUG_SELECT']
+              if (selectRows && tabs[index] === 'files') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `(() => {
+                     const boxes = document.querySelectorAll('tbody td.pick input[type=checkbox]')
+                     const count = Math.min(${Number(selectRows)}, boxes.length)
+                     for (let i = 0; i < count; i++) boxes[i].click()
+                     return count
+                   })()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 400))
+              }
+
+              if (process.env['PT_DEBUG_PRINT'] && tabs[index] === 'files') {
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelector('.selection-bar .btn.primary')?.click()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 1200))
+
+                // `PT_DEBUG_PRINT=apply` also presses Print, so the real
+                // command path and the per-file reporting can be seen.
+                if (process.env['PT_DEBUG_PRINT'] === 'apply') {
+                  await mainWindow?.webContents.executeJavaScript(
+                    `document.querySelector('.modal-foot .btn.primary')?.click()`
+                  )
+                  await new Promise((resolve) => setTimeout(resolve, 4000))
+
+                  const state: unknown = await mainWindow?.webContents.executeJavaScript(
+                    `({
+                       modals: document.querySelectorAll('.modal').length,
+                       results: Boolean(document.querySelector('.print-results')),
+                       resultRows: document.querySelectorAll('.print-results .list-item').length,
+                       footerButtons: Array.from(
+                         document.querySelectorAll('.modal-foot .btn')
+                       ).map((node) => (node.textContent || '').trim())
+                     })`
+                  )
+                  console.log('[pt-debug] print dialog state:', JSON.stringify(state))
+                }
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`

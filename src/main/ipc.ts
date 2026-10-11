@@ -7,10 +7,14 @@ import type {
   FileQuery,
   ManualPrintInput,
   PrintQuery,
+  PrintRequestInput,
   ResetOptions,
   UpdateFolderInput
 } from '@shared/types'
 import type { AppContext } from './app'
+
+/** Upper bound on one print request, so a stray payload cannot queue thousands. */
+const MAX_PRINT_BATCH = 200
 
 function asId(value: unknown): number {
   const id = Number(value)
@@ -94,6 +98,26 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
   ipcMain.handle(IPC.files.markPrinted, (_event, input: unknown) =>
     ctx.prints.addManual(asObject<ManualPrintInput>(input))
   )
+
+  ipcMain.handle(IPC.files.method, () => ctx.printer.method())
+
+  ipcMain.handle(IPC.files.listPrinters, () => ctx.printer.listPrinters())
+
+  ipcMain.handle(IPC.files.print, async (_event, input: unknown) => {
+    const payload = asObject<PrintRequestInput>(input)
+    const fileIds = Array.isArray(payload.fileIds)
+      ? payload.fileIds.map((id) => asId(id)).slice(0, MAX_PRINT_BATCH)
+      : []
+    if (fileIds.length === 0) throw new Error('Select at least one file to print.')
+
+    const report = await ctx.printFiles({
+      fileIds,
+      printer: typeof payload.printer === 'string' ? payload.printer : null,
+      copies: Number(payload.copies ?? 1)
+    })
+
+    return report
+  })
 
   /* -------------------------------------------------------------- prints */
 

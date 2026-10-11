@@ -4,7 +4,8 @@ import { useI18n } from '../i18n'
 const KEYS = {
   watcher: 'source.watcher',
   spooler: 'source.spooler',
-  manual: 'source.manual'
+  manual: 'source.manual',
+  app: 'source.app'
 } as const
 
 export default function SourceBadge({ source }: { source: PrintSource }) {

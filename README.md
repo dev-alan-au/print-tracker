@@ -19,16 +19,54 @@ print history in a local SQLite database.
                             manual "Mark printed"
 ```
 
-## Three ways a print gets recorded
+## Four ways a print gets recorded
 
 | Source           | How it works                                                                                                                                  |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Folder watch** | Folders can be marked as **output / spool**. A file that appears there after startup counts as a print. Ideal for "print to folder" workflows. |
 | **Spooler**      | On Windows, Print Tracker reads the `Microsoft-Windows-PrintService/Operational` event log (event id 307) and polls the live print queue.      |
+| **From the app** | Select one or more files in **Files** and press **Print selected…**. Recorded as `app`, so history shows it was started here.                  |
 | **Manual**       | A "Mark printed" / "Log a print" button for anything the app cannot observe.                                                                   |
 
-Extra details are captured where available: printer, user, copies, pages and a
-free-text note.
+### Printing from inside the app
+
+**Files → tick one or more rows → Print selected…**
+
+Print Tracker does not render or rasterise documents itself. It hands each file
+to the operating system, using the same program that would normally print it:
+
+| Platform      | Mechanism                                                             |
+| ------------- | --------------------------------------------------------------------- |
+| Windows       | `Start-Process -Verb Print` (or `PrintTo` when a printer is chosen)    |
+| macOS / Linux | CUPS, via `lp [-d printer] [-n copies] -- path`                        |
+
+Consequences worth knowing:
+
+- A file prints only if something on the machine can print that type. A `.pdf`
+  or `.txt` usually can; a `.docx` needs Word or similar installed. A file
+  nothing can handle is reported per file rather than failing the batch.
+- The command is written to the PowerShell command line **base64-encoded**, so a
+  quote in a filename cannot break out into the script.
+- A job is recorded **only once the system accepts it**. If `lp` or the Windows
+  verb fails, nothing is added to the history - the point of the feature is to
+  make the history truthful, so recording an attempt would defeat it.
+- The files are checked for existence before the OS is asked, so a row whose
+  file has since been deleted says so in our own words.
+
+#### Why an app print is not counted twice
+
+The spooler sees *every* job, including the ones this app queued, so on Windows
+a single print would otherwise appear twice - once as `app` and once as
+`spooler` - with a doubled counter. `PrintService` therefore drops a spooler or
+watcher event for a file that the app itself printed in the last 60 seconds.
+
+The window is deliberately generous, because the spooler polls on an interval
+rather than instantly. The trade-off is the opposite failure: printing a file
+from the app and then reprinting the same file from its own application within
+that minute is recorded once. Manual entries are never suppressed, since the
+user asserting a print outranks any inference.
+
+Extra details are captured where available: printer, user, copies, pages and afree-text note.
 
 ### Folder roles
 
@@ -291,7 +329,7 @@ src/
   shared/i18n/       message catalogues (en, ko) and translation helpers
   main/
     db/              SQLite wrapper and versioned migrations
-    services/        folders · files(index) · prints · watcher · spooler · settings
+    services/        folders · files(index) · prints · printer · watcher · spooler · settings
                      backups · query · reset · restore
     util/            ISO date helpers
     app.ts           wires the services together

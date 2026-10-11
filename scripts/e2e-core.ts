@@ -13,6 +13,7 @@ import { BackupService } from '../src/main/services/backups'
 import { FileService } from '../src/main/services/files'
 import { FolderService } from '../src/main/services/folders'
 import { PrintService } from '../src/main/services/prints'
+import { parseWindowsPrinters, PrinterService } from '../src/main/services/printer'
 import { QueryService } from '../src/main/services/query'
 import { ResetService } from '../src/main/services/reset'
 import { RestoreService } from '../src/main/services/restore'
@@ -49,6 +50,22 @@ function check(name: string, fn: () => void): void {
 
 function assert(condition: unknown, message: string): void {
   if (!condition) throw new Error(message)
+}
+
+/**
+ * Async twin of `check`. Printing talks to the operating system, so those
+ * checks have to await; a rejected promise returned from the sync `check`
+ * would never be counted and the failure would vanish.
+ */
+async function acheck(name: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn()
+    results.push(`PASS  ${name}`)
+  } catch (error) {
+    const line = `FAIL  ${name}\n        ${(error as Error).message}`
+    results.push(line)
+    failures.push(line)
+  }
 }
 
 function eq(actual: unknown, expected: unknown, label: string): void {
@@ -555,6 +572,261 @@ async function main(): Promise<void> {
     // would stop the user deleting or overwriting their own file.
     const attached = db.all<{ name: string }>('PRAGMA database_list').map((row) => row.name)
     eq(attached, ['main'], 'only the live database should be attached')
+  })
+
+  /* ------------------------------------------------------------- printing */
+
+  const printable = files.list({ search: 'invoice-a' }).items[0]
+  assert(printable, 'expected the invoice fixture to be indexed')
+
+  /** Stands in for the operating system: records the command, returns canned output. */
+  const stub = (
+    platform: NodeJS.Platform,
+    respond: (file: string, args: string[]) => string = () => ''
+  ): { service: PrinterService; calls: { file: string; args: string[] }[] } => {
+    const calls: { file: string; args: string[] }[] = []
+    const service = new PrinterService(files, prints, {
+      platform,
+      findBinary: (name) => (name === 'lp' || name === 'lpstat' ? `/usr/bin/${name}` : null),
+      run: (file, args) => {
+        calls.push({ file, args })
+        return Promise.resolve(respond(file, args))
+      }
+    })
+    return { service, calls }
+  }
+
+  await acheck('a machine without CUPS cannot print', () => {
+    const bare = new PrinterService(files, prints, {
+      platform: 'linux',
+      findBinary: () => null,
+      run: () => Promise.resolve('')
+    })
+    eq(bare.method(), 'unsupported', 'method')
+  })
+
+  await acheck('Windows prints through the shell, other platforms through CUPS', () => {
+    eq(stub('win32').service.method(), 'windows', 'windows')
+    eq(stub('linux').service.method(), 'cups', 'linux with lp')
+    eq(stub('darwin').service.method(), 'cups', 'macOS with lp')
+  })
+
+  await acheck('printing a file queues it and records where it came from', async () => {
+    const { service, calls } = stub('linux')
+    const report = await service.print({ fileIds: [printable.id] })
+
+    eq(report.method, 'cups', 'method')
+    eq(report.results.length, 1, 'one result')
+    eq(report.results[0].ok, true, 'queued')
+
+    const call = calls.find((entry) => entry.file.endsWith('/lp'))
+    assert(call, 'expected lp to be invoked')
+    // `--` keeps a path starting with a dash from being read as an option.
+    eq(call.args.at(-2), '--', 'path separator')
+    eq(call.args.at(-1), printable.path, 'the file path')
+
+    const events = prints.list({ fileId: printable.id }).items
+    const event = events.find((item) => item.source === 'app')
+    assert(event, 'expected an app-sourced print event')
+    eq(event.printedAt >= new Date(Date.now() - 10_000).toISOString(), true, 'stamped now')
+  })
+
+  await acheck('copies are passed through to the print command', async () => {
+    const { service, calls } = stub('linux')
+    await service.print({ fileIds: [printable.id], copies: 3 })
+    const call = calls.find((entry) => entry.file.endsWith('/lp'))
+    assert(call, 'expected lp to be invoked')
+    assert(call.args.includes('-n') && call.args.includes('3'), 'expected -n 3')
+  })
+
+  await acheck('a named printer is targeted', async () => {
+    const { service, calls } = stub('linux')
+    await service.print({ fileIds: [printable.id], printer: 'Office' })
+    const call = calls.find((entry) => entry.file.endsWith('/lp'))
+    assert(call, 'expected lp to be invoked')
+    eq(call.args[0], '-d', 'printer flag')
+    eq(call.args[1], 'Office', 'printer name')
+  })
+
+  await acheck('nothing is recorded when the print command fails', async () => {
+    const before = prints.count()
+    const { service } = stub('linux', () => {
+      throw new Error('lp: The printer is not responding.')
+    })
+    const report = await service.print({ fileIds: [printable.id] })
+    eq(report.results[0].ok, false, 'reported as failed')
+    assert(report.results[0].error?.includes('not responding'), 'the OS message is surfaced')
+    eq(prints.count(), before, 'no event for a job that never queued')
+  })
+
+  await acheck('a file that has vanished is refused before the OS is asked', async () => {
+    const ghost = files.list({ search: 'invoice-a' }).items[0]
+    const originalPath = ghost.path
+    db.run('UPDATE files SET path = ? WHERE id = ?', [`${originalPath}.gone`, ghost.id])
+    try {
+      const { service, calls } = stub('linux')
+      const report = await service.print({ fileIds: [ghost.id] })
+      eq(report.results[0].errorKey, 'print.error.missing', 'reason')
+      eq(calls.length, 0, 'the print command should not have run')
+    } finally {
+      // Put the path back even if the check fails: the rest of the suite reads it.
+      db.run('UPDATE files SET path = ? WHERE id = ?', [originalPath, ghost.id])
+    }
+  })
+
+  await acheck('an unsupported machine reports it per file rather than throwing', async () => {
+    const bare = new PrinterService(files, prints, {
+      platform: 'linux',
+      findBinary: () => null,
+      run: () => Promise.resolve('')
+    })
+    const report = await bare.print({ fileIds: [printable.id] })
+    eq(report.method, 'unsupported', 'method')
+    eq(report.results[0].errorKey, 'print.error.unsupported', 'reason')
+  })
+
+  await acheck('a batch reports per-file outcomes', async () => {
+    // Written against call order rather than specific fixtures, so it does not
+    // depend on which files earlier checks left in the index.
+    let seen = 0
+    const { service } = stub('linux', () => {
+      seen += 1
+      if (seen > 1) throw new Error('boom')
+      return ''
+    })
+    const ids = files.list({ limit: 3 }).items.map((file) => file.id)
+    assert(ids.length >= 2, 'expected at least two indexed files')
+
+    const report = await service.print({ fileIds: ids })
+    eq(report.results.length, ids.length, 'a result per file')
+    eq(report.results.filter((result) => result.ok).length, 1, 'only one succeeded')
+    eq(report.results[0].ok, true, 'results are in request order')
+  })
+
+  await acheck('Windows commands carry the file and printer, base64 encoded', async () => {
+    const { service, calls } = stub('win32')
+    return service
+      .print({ fileIds: [printable.id], printer: 'HP LaserJet 4' })
+      .then(() => {
+        const call = calls[0]
+        eq(call.file, 'powershell.exe', 'runner')
+        assert(call.args.includes('-EncodedCommand'), 'encoded to avoid shell parsing')
+
+        const decoded = Buffer.from(call.args.at(-1) ?? '', 'base64').toString('utf16le')
+        assert(decoded.includes('PrintTo'), 'expected the PrintTo verb for a named printer')
+        assert(decoded.includes('HP LaserJet 4'), 'expected the printer name')
+        assert(decoded.includes(printable.path), 'expected the file path')
+      })
+  })
+
+  await acheck('a Windows print to the default printer uses the plain print verb', async () => {
+    const { service, calls } = stub('win32')
+    return service.print({ fileIds: [printable.id] }).then(() => {
+      const decoded = Buffer.from(calls[0].args.at(-1) ?? '', 'base64').toString('utf16le')
+      assert(decoded.includes('-Verb Print'), 'expected the Print verb')
+      assert(!decoded.includes('PrintTo'), 'PrintTo needs a printer name')
+    })
+  })
+
+  await acheck('a quote in a Windows path cannot break out of the command', async () => {
+    const { service, calls } = stub('win32')
+    return service
+      .print({ fileIds: [printable.id], printer: "Bob's 'Printer'" })
+      .then(() => {
+        const decoded = Buffer.from(calls[0].args.at(-1) ?? '', 'base64').toString('utf16le')
+        // Doubling is what makes it inert; a single quote would end the string.
+        assert(decoded.includes("'Bob''s ''Printer'''"), `expected doubled quotes, got: ${decoded}`)
+      })
+  })
+
+  await acheck('the printer list marks the system default', async () => {
+    const { service } = stub('linux', (file, args) => {
+      if (args[0] === '-a') return 'HP_LaserJet accepting requests\nOffice accepting requests\n'
+      if (args[0] === '-d') return 'system default destination: Office\n'
+      return ''
+    })
+    return service.listPrinters().then((list) => {
+      eq(list.length, 2, 'printers')
+      eq(list.find((entry) => entry.isDefault)?.name, 'Office', 'default printer')
+    })
+  })
+
+  await acheck('a printer list that cannot be read yields an empty list, not an error', async () => {
+    const { service } = stub('linux', () => {
+      throw new Error('lpstat: command not found')
+    })
+    return service.listPrinters().then((list) => eq(list, [], 'empty'))
+  })
+
+  await acheck('Windows printer output parses for one printer and for many', async () => {
+    eq(parseWindowsPrinters('{"name":"Solo","default":true}'), [
+      { name: 'Solo', isDefault: true }
+    ], 'single object')
+    eq(
+      parseWindowsPrinters('[{"name":"A","default":false},{"name":"B","default":true}]').length,
+      2,
+      'array of objects'
+    )
+    eq(parseWindowsPrinters('not json'), [], 'garbage')
+    eq(parseWindowsPrinters(''), [], 'empty')
+  })
+
+  /* ------------------------------------------- echoes of the app own prints */
+
+  await acheck('a spooler event echoing an app print is suppressed', async () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    const { service } = stub('linux')
+    return service.print({ fileIds: [file.id] }).then(() => {
+      const before = prints.count()
+      // The spooler sees every job, including the one the app just queued.
+      const echo = prints.record({
+        fileId: file.id,
+        source: 'spooler',
+        externalId: 'spooler:echo-of-app-print'
+      })
+      eq(echo, null, 'the echo is dropped')
+      eq(prints.count(), before, 'no second event')
+    })
+  })
+
+  await acheck('a manual entry is never treated as an echo', async () => {
+    const file = files.list({ search: 'invoice-a' }).items[0]
+    // The user asserting a print outranks any inference from the app.
+    const event = prints.record({ fileId: file.id, source: 'manual' })
+    assert(event, 'a manual entry should always be recorded')
+    eq(event?.source, 'manual', 'source')
+  })
+
+  await acheck('an echo from long ago no longer suppresses', async () => {
+    // A file nothing else has printed from the app, so the only app-sourced
+    // event for it is the stale one created here.
+    const file = files.list({ search: 'report-b' }).items[0]
+    assert(file, 'expected the nested report fixture')
+
+    const old = new Date(Date.now() - 10 * 60_000).toISOString()
+
+    // Clear anything an earlier check recorded from the app for this file, so
+    // the stale event below is the only one and the window is what is tested.
+    db.run("DELETE FROM print_events WHERE file_id = ? AND source = 'app'", [file.id])
+    prints.record({ fileId: file.id, source: 'app', printedAt: old })
+
+    const event = prints.record({
+      fileId: file.id,
+      source: 'spooler',
+      externalId: 'spooler:outside-the-window'
+    })
+    assert(event, 'a stale app print should not swallow a later spooler event')
+  })
+
+  await acheck('an echo for a different file is not suppressed', async () => {
+    const other = files.list({ search: 'notes-c' }).items[0]
+    assert(other, 'expected the notes fixture')
+    const event = prints.record({
+      fileId: other.id,
+      source: 'spooler',
+      externalId: 'spooler:different-file'
+    })
+    assert(event, 'unrelated files must not be suppressed')
   })
 
   /* --------------------------------------------------------------- reset */

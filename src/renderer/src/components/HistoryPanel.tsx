@@ -92,6 +92,7 @@ export default function HistoryPanel({
             <option value="all">{t('history.allSources')}</option>
             <option value="watcher">{t('source.watcher')}</option>
             <option value="spooler">{t('source.spooler')}</option>
+            <option value="app">{t('source.app')}</option>
             <option value="manual">{t('source.manual')}</option>
           </select>
           <span className="spacer" />

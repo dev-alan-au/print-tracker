@@ -24,6 +24,7 @@ export const en = {
 
   /* --------------------------------------------------------------- common */
   'common.cancel': 'Cancel',
+  'common.close': 'Close',
   'common.refresh': 'Refresh',
   'common.delete': 'Delete',
   'common.open': 'Open',
@@ -65,6 +66,42 @@ export const en = {
   'source.watcher': 'Folder watch',
   'source.spooler': 'Spooler',
   'source.manual': 'Manual',
+  'source.app': 'From the app',
+
+  /* -------------------------------------------------------------- printing */
+  'print.title': 'Print files',
+  'print.intro':
+    'Each file is handed to your operating system to print, using the same programs that normally print it. Printing only starts once the system accepts the job, so a file that is queued is recorded in the print history.',
+  'print.printer': 'Printer',
+  'print.defaultPrinter': 'System default',
+  'print.printerUnknown': 'No printers were found, so the system default will be used.',
+  'print.copies': 'Copies',
+  'print.submit': 'Print',
+  'print.submitting': 'Sending…',
+  'print.selected.one': '{count} file ready to print',
+  'print.selected.other': '{count} files ready to print',
+  'print.result.ok': 'Sent to the printer',
+  'print.result.failed': 'Not printed',
+  'print.result.summary': '{ok} of {total} files were sent to the printer.',
+  'print.unsupported.title': 'Printing is not available here',
+  'print.unsupported.body':
+    'Print Tracker has no way to send files to a printer on this computer. Print the file from its own application instead, then use Mark printed to record it.',
+
+  'files.selected.one': '{count} selected',
+  'files.selected.other': '{count} selected',
+  'files.selectAll': 'Select every file on this page',
+  'files.selectFile': 'Select {name}',
+  'files.clearSelection': 'Clear selection',
+  'files.printSelected': 'Print selected…',
+
+  'print.error.unsupported': 'This computer cannot print from Print Tracker.',
+  'print.error.unknown': 'This file is no longer in the index.',
+  'print.error.missing': 'The file is no longer at its recorded location.',
+  'print.error.noHandler': 'No program on this computer can print this type of file.',
+
+  'print.toast.queued': '{count} file(s) sent to the printer.',
+  'print.toast.partial': '{ok} of {total} were sent; the rest could not be printed.',
+  'print.toast.none': 'Nothing was sent to the printer.',
 
   'unit.prints.one': '{count} print',
   'unit.prints.other': '{count} prints',
@@ -94,6 +131,7 @@ export const en = {
   'dashboard.sources.watcher': 'Files appearing in output folders',
   'dashboard.sources.spooler': 'Windows print queue & event log',
   'dashboard.sources.manual': 'Logged by hand',
+  'dashboard.sources.app': 'Printed from Print Tracker',
 
   'dashboard.top.title': 'Most printed',
   'dashboard.top.emptyTitle': 'No prints recorded yet',

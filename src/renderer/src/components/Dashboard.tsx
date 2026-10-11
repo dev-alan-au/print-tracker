@@ -4,7 +4,7 @@ import { formatDayLabel, formatRelative } from '../lib/format'
 import PageHelp from './PageHelp'
 import SourceBadge from './SourceBadge'
 
-const SOURCE_ORDER: PrintSource[] = ['watcher', 'spooler', 'manual']
+const SOURCE_ORDER: PrintSource[] = ['watcher', 'spooler', 'app', 'manual']
 
 /**
  * Plot height in pixels. Bar heights are computed from this, so the chart does
@@ -16,7 +16,8 @@ const PLOT_HEIGHT = 84
 const SOURCE_DESCRIPTION_KEYS: Record<PrintSource, MessageKey> = {
   watcher: 'dashboard.sources.watcher',
   spooler: 'dashboard.sources.spooler',
-  manual: 'dashboard.sources.manual'
+  manual: 'dashboard.sources.manual',
+  app: 'dashboard.sources.app'
 }
 
 export default function Dashboard({

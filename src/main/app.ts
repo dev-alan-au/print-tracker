@@ -2,6 +2,8 @@ import { dirname, join } from 'node:path'
 import type {
   AddFolderInput,
   PrintEvent,
+  PrintReport,
+  PrintRequestInput,
   ResetOptions,
   ResetReport,
   RestoreReport,
@@ -15,6 +17,7 @@ import { BackupService } from './services/backups'
 import { FileService } from './services/files'
 import { FolderService } from './services/folders'
 import { PrintService } from './services/prints'
+import { PrinterService } from './services/printer'
 import { QueryService } from './services/query'
 import { ResetService } from './services/reset'
 import { RestoreService } from './services/restore'
@@ -41,6 +44,7 @@ export interface AppContext {
   readonly query: QueryService
   readonly reset: ResetService
   readonly restore: RestoreService
+  readonly printer: PrinterService
   readonly databasePath: string
 
   addFolder(input: AddFolderInput): TrackedFolder
@@ -48,6 +52,7 @@ export interface AppContext {
   removeFolder(id: number): void
   rescanFolder(id: number): number
   rescanAll(): number
+  printFiles(input: PrintRequestInput): Promise<PrintReport>
   resetApp(options: ResetOptions): ResetReport
   restoreBackup(path: string): RestoreReport
   startWatching(): void
@@ -67,6 +72,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   const query = new QueryService(db)
   const reset = new ResetService(db, backups)
   const restore = new RestoreService(db, backups)
+  const printer = new PrinterService(files, prints)
 
   const watcher = new WatcherService(
     folders,
@@ -136,6 +142,16 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   }
 
   /**
+   * Prints and then tells the renderer, because a queued job changes the
+   * printed counter and the last-printed timestamp of every file that went out.
+   */
+  const printFiles = async (input: PrintRequestInput): Promise<PrintReport> => {
+    const report = await printer.print(input)
+    if (report.results.some((result) => result.ok)) events.filesChanged()
+    return report
+  }
+
+  /**
    * Wipes the database, then brings the runtime back in line with it.
    *
    * `watcher.refresh()` is the important half: it derives its watch set from
@@ -173,12 +189,14 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     query,
     reset,
     restore,
+    printer,
     databasePath,
     addFolder,
     updateFolder,
     removeFolder,
     rescanFolder,
     rescanAll,
+    printFiles,
     resetApp,
     restoreBackup,
     startWatching,
