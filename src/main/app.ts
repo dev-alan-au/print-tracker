@@ -12,6 +12,7 @@ import { BackupService } from './services/backups'
 import { FileService } from './services/files'
 import { FolderService } from './services/folders'
 import { PrintService } from './services/prints'
+import { QueryService } from './services/query'
 import { SettingsService } from './services/settings'
 import { SpoolerService } from './services/spooler'
 import { WatcherService } from './services/watcher'
@@ -32,6 +33,7 @@ export interface AppContext {
   readonly watcher: WatcherService
   readonly spooler: SpoolerService
   readonly backups: BackupService
+  readonly query: QueryService
   readonly databasePath: string
 
   addFolder(input: AddFolderInput): TrackedFolder
@@ -53,6 +55,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
 
   // Snapshots live beside the database so the two travel together.
   const backups = new BackupService(db, join(dirname(databasePath), 'backups'))
+  const query = new QueryService(db)
 
   const watcher = new WatcherService(
     folders,
@@ -134,6 +137,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     watcher,
     spooler,
     backups,
+    query,
     databasePath,
     addFolder,
     updateFolder,

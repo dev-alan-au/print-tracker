@@ -85,7 +85,15 @@ function createWindow(): void {
       const shotPath = process.env['PT_DEBUG_SHOT']
       if (shotPath) {
         const base = shotPath.replace(/\.png$/i, '')
-        const tabs = ['overview', 'dashboard', 'folders', 'files', 'history', 'settings']
+        const tabs = [
+          'overview',
+          'dashboard',
+          'folders',
+          'files',
+          'history',
+          'query',
+          'settings'
+        ]
 
         setTimeout(() => {
           void (async () => {

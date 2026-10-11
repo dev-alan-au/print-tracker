@@ -134,6 +134,15 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
     ctx.backups.remove(path)
   })
 
+  /* --------------------------------------------------------------- query */
+
+  ipcMain.handle(IPC.query.schema, () => ctx.query.schema())
+
+  ipcMain.handle(IPC.query.run, (_event, sql: unknown, readOnly: unknown) => {
+    if (typeof sql !== 'string') throw new Error('A SQL statement is required.')
+    return ctx.query.run(sql, readOnly === true)
+  })
+
   /* ------------------------------------------------------------ settings */
 
   ipcMain.handle(IPC.settings.get, () => ctx.settings.get())

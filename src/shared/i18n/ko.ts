@@ -17,6 +17,7 @@ export const ko: Catalog = {
   'nav.files': '파일',
   'nav.history': '인쇄 기록',
   'nav.settings': '설정',
+  'nav.query': '쿼리',
 
   'sidebar.spoolerMonitoring': '스풀러 모니터링 중',
   'sidebar.spoolerIdle': '스풀러 대기 중',
@@ -192,6 +193,24 @@ export const ko: Catalog = {
   'manual.saving': '저장 중…',
   'manual.toast.saved': '인쇄 기록을 저장했습니다.',
   'manual.error.document': '문서 이름을 입력하거나 색인된 파일 중에서 선택하세요.',
+
+  /* ---------------------------------------------------------------- query */
+  'query.title': '쿼리',
+  'query.subtitle': '로컬 데이터베이스에 SQL을 실행합니다.',
+  'query.schema.title': '스키마',
+  'query.editor.placeholder': 'SELECT * FROM files LIMIT 50;',
+  'query.run': '실행',
+  'query.readOnly': '읽기 전용',
+  'query.readOnlyHint':
+    '문은 항상 롤백되는 트랜잭션 안에서 실행되며 SELECT / WITH / EXPLAIN / PRAGMA만 허용됩니다.',
+  'query.writeHint':
+    '쓰기 모드에서는 변경 사항이 영구적으로 적용됩니다. 되돌리려면 앱 시작 시 만들어진 스냅샷을 사용하세요.',
+  'query.result.rows': '{count}개 행',
+  'query.result.changes': '{count}개 행 영향',
+  'query.result.executed': '문을 실행했습니다.',
+  'query.error.title': '실행 실패',
+  'query.error.readOnly':
+    '읽기 전용 모드에서는 SELECT, WITH, EXPLAIN, PRAGMA, VALUES만 실행할 수 있습니다.',
 
   /* ------------------------------------------------------------- settings */
   'settings.title': '설정',

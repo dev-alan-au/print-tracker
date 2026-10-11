@@ -12,6 +12,7 @@ import FilesPanel from './components/FilesPanel'
 import FoldersPanel from './components/FoldersPanel'
 import HistoryPanel from './components/HistoryPanel'
 import OverviewPanel from './components/OverviewPanel'
+import QueryPanel from './components/QueryPanel'
 import SettingsPanel from './components/SettingsPanel'
 import Toasts, { type Toast } from './components/Toasts'
 import { I18nProvider, createI18n } from './i18n'
@@ -23,7 +24,7 @@ import {
   writeCachedTheme
 } from './lib/preferences'
 
-type TabId = 'overview' | 'dashboard' | 'folders' | 'files' | 'history' | 'settings'
+type TabId = 'overview' | 'dashboard' | 'folders' | 'files' | 'history' | 'query' | 'settings'
 
 const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
   { id: 'overview', labelKey: 'nav.overview', icon: '◉' },
@@ -31,6 +32,7 @@ const TABS: { id: TabId; labelKey: MessageKey; icon: string }[] = [
   { id: 'folders', labelKey: 'nav.folders', icon: '▤' },
   { id: 'files', labelKey: 'nav.files', icon: '▦' },
   { id: 'history', labelKey: 'nav.history', icon: '⎙' },
+  { id: 'query', labelKey: 'nav.query', icon: '▣' },
   { id: 'settings', labelKey: 'nav.settings', icon: '⚙' }
 ]
 
@@ -151,6 +153,7 @@ export default function App() {
     folders: stats?.folderCount ?? null,
     files: stats?.fileCount ?? null,
     history: stats?.printCount ?? null,
+    query: null,
     settings: null
   }
 
@@ -231,6 +234,7 @@ export default function App() {
         {tab === 'history' ? (
           <HistoryPanel refreshToken={refreshToken} onChanged={refresh} onToast={addToast} />
         ) : null}
+        {tab === 'query' ? <QueryPanel onToast={addToast} /> : null}
         {tab === 'settings' ? (
           <SettingsPanel
             refreshToken={refreshToken}

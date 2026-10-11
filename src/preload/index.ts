@@ -12,6 +12,8 @@ import type {
   PrintEvent,
   PrintQuery,
   PrintTrackerApi,
+  QueryResult,
+  SchemaTable,
   SpoolerStatus,
   ToastMessage,
   TrackedFile,
@@ -74,6 +76,11 @@ const api: PrintTrackerApi = {
     list: () => ipcRenderer.invoke(IPC.backups.list) as Promise<BackupEntry[]>,
     create: () => ipcRenderer.invoke(IPC.backups.create) as Promise<BackupEntry>,
     remove: (path: string) => ipcRenderer.invoke(IPC.backups.remove, path) as Promise<void>
+  },
+  query: {
+    schema: () => ipcRenderer.invoke(IPC.query.schema) as Promise<SchemaTable[]>,
+    run: (sql: string, readOnly: boolean) =>
+      ipcRenderer.invoke(IPC.query.run, sql, readOnly) as Promise<QueryResult>
   },
   events: {
     onFilesChanged: (callback: () => void) => subscribe<void>(IPC.events.filesChanged, callback),

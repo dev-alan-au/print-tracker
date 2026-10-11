@@ -182,6 +182,30 @@ export interface BackupEntry {
   createdAt: string
 }
 
+/* ------------------------------------------------------------------ query */
+
+export interface QueryColumn {
+  name: string
+  type: string
+  notNull: boolean
+  primaryKey: boolean
+}
+
+export interface SchemaTable {
+  name: string
+  columns: QueryColumn[]
+}
+
+export interface QueryResult {
+  columns: string[]
+  /** Cells are pre-normalised to values React can render directly. */
+  rows: Record<string, string | number | null>[]
+  /** Rows affected, or null when the statement does not report it. */
+  changes: number | null
+  /** True when the statement ran in read-only mode and was rolled back. */
+  rolledBack: boolean
+}
+
 /* ---------------------------------------------------------------- settings */
 
 export interface AppSettings {
@@ -271,6 +295,10 @@ export interface PrintTrackerApi {
     list(): Promise<BackupEntry[]>
     create(): Promise<BackupEntry>
     remove(path: string): Promise<void>
+  }
+  query: {
+    schema(): Promise<SchemaTable[]>
+    run(sql: string, readOnly: boolean): Promise<QueryResult>
   }
   events: {
     onFilesChanged(cb: () => void): () => void

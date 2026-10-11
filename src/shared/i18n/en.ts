@@ -14,6 +14,7 @@ export const en = {
   'nav.files': 'Files',
   'nav.history': 'Print history',
   'nav.settings': 'Settings',
+  'nav.query': 'Query',
 
   'sidebar.spoolerMonitoring': 'Spooler monitoring',
   'sidebar.spoolerIdle': 'Spooler idle',
@@ -190,6 +191,24 @@ export const en = {
   'manual.saving': 'Saving…',
   'manual.toast.saved': 'Print event recorded.',
   'manual.error.document': 'Enter a document name, or pick one of the indexed files.',
+
+  /* ---------------------------------------------------------------- query */
+  'query.title': 'Query',
+  'query.subtitle': 'Run SQL against the local database.',
+  'query.schema.title': 'Schema',
+  'query.editor.placeholder': 'SELECT * FROM files LIMIT 50;',
+  'query.run': 'Run',
+  'query.readOnly': 'read-only',
+  'query.readOnlyHint':
+    'Statements run inside a transaction that is always rolled back, and only SELECT / WITH / EXPLAIN / PRAGMA are accepted.',
+  'query.writeHint':
+    'Write mode: changes are permanent. A snapshot was taken when the app started if you need to go back.',
+  'query.result.rows': '{count} row(s)',
+  'query.result.changes': '{count} row(s) affected',
+  'query.result.executed': 'Statement executed.',
+  'query.error.title': 'Statement failed',
+  'query.error.readOnly':
+    'Read-only mode only allows SELECT, WITH, EXPLAIN, PRAGMA and VALUES.',
 
   /* ------------------------------------------------------------- settings */
   'settings.title': 'Settings',

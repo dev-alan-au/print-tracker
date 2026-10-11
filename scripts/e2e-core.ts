@@ -13,6 +13,7 @@ import { BackupService } from '../src/main/services/backups'
 import { FileService } from '../src/main/services/files'
 import { FolderService } from '../src/main/services/folders'
 import { PrintService } from '../src/main/services/prints'
+import { QueryService } from '../src/main/services/query'
 import { SettingsService } from '../src/main/services/settings'
 import { SpoolerService } from '../src/main/services/spooler'
 import { WatcherService } from '../src/main/services/watcher'
@@ -212,6 +213,87 @@ async function main(): Promise<void> {
     eq(updated.minFileStabilityMs, 900, 'updated value')
     eq(updated.autoStartWatching, true, 'default preserved')
     eq(settings.get().minFileStabilityMs, 900, 'read back')
+  })
+
+  /* --------------------------------------------------------------- query */
+
+  const query = new QueryService(db)
+
+  check('the schema browser lists tables and their columns', () => {
+    const schema = query.schema()
+    eq(
+      schema.map((table) => table.name).sort(),
+      ['files', 'folders', 'print_events', 'settings'],
+      'tables'
+    )
+
+    const filesTable = schema.find((table) => table.name === 'files')
+    assert(filesTable, 'expected the files table')
+    assert(
+      filesTable.columns.some((column) => column.name === 'last_printed_at'),
+      'expected last_printed_at to be listed'
+    )
+    assert(
+      filesTable.columns.some((column) => column.primaryKey),
+      'expected the primary key to be flagged'
+    )
+  })
+
+  check('a select returns columns, rows and a rollback flag', () => {
+    const result = query.run('SELECT name FROM files ORDER BY name', true)
+    eq(result.columns, ['name'], 'columns')
+    assert(result.rows.length > 0, 'expected rows')
+    eq(result.rolledBack, true, 'read-only statements report a rollback')
+  })
+
+  check('read-only mode refuses a write and changes nothing', () => {
+    let message = ''
+    try {
+      query.run('DELETE FROM files', true)
+    } catch (error) {
+      message = (error as Error).message
+    }
+    assert(message.includes('Read-only'), `expected a read-only refusal, got: ${message}`)
+    assert(files.count() > 0, 'files should be untouched')
+  })
+
+  check('a write hidden behind a CTE cannot change anything', () => {
+    const before = files.count()
+    // The leading keyword is WITH, so the guard lets it through. The rollback is
+    // what actually protects the data - which is the whole point of running
+    // read-only statements inside a transaction.
+    query.run('WITH x AS (SELECT 1) DELETE FROM files', true)
+    eq(files.count(), before, 'files should be untouched')
+  })
+
+  check('write mode reports the number of affected rows', () => {
+    const result = query.run("INSERT INTO settings (key, value) VALUES ('probe', '1')", false)
+    eq(result.changes, 1, 'one row affected')
+    eq(result.columns, [], 'a write returns no columns')
+    query.run("DELETE FROM settings WHERE key = 'probe'", false)
+  })
+
+  check('several statements run together in write mode', () => {
+    query.run(
+      "INSERT INTO settings (key, value) VALUES ('multi1','1'); INSERT INTO settings (key, value) VALUES ('multi2','1');",
+      false
+    )
+    const count = Number(
+      db.get("SELECT COUNT(*) AS c FROM settings WHERE key LIKE 'multi%'").c
+    )
+    eq(count, 2, 'both statements ran')
+    query.run("DELETE FROM settings WHERE key LIKE 'multi%'", false)
+  })
+
+  check('result cells are primitives React can render', () => {
+    const result = query.run('SELECT id, name, present, last_printed_at FROM files LIMIT 1', true)
+    assert(result.rows.length === 1, 'expected one row')
+    for (const value of Object.values(result.rows[0])) {
+      assert(
+        value === null || typeof value === 'string' || typeof value === 'number',
+        `unexpected cell type: ${typeof value}`
+      )
+    }
   })
 
   /* ------------------------------------------------------------- backups */

@@ -40,6 +40,10 @@ export const IPC = {
     create: 'backups:create',
     remove: 'backups:remove'
   },
+  query: {
+    schema: 'query:schema',
+    run: 'query:run'
+  },
   events: {
     filesChanged: 'event:files-changed',
     printRecorded: 'event:print-recorded',
