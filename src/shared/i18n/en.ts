@@ -209,6 +209,7 @@ export const en = {
   'files.sort.lastPrinted': 'Last printed',
   'files.sort.size': 'Largest',
   'files.printedOnly': 'printed only',
+  'files.notPrintedOnly': 'not printed only',
   'files.loading': 'Loading files…',
   'files.emptyTitle': 'No files match',
   'files.emptyBody': 'Add a folder to track, or loosen the filters above.',

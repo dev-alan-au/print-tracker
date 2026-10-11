@@ -94,7 +94,35 @@ export default function OverviewPanel({
         </div>
       </header>
 
-      <div className="grid-2">
+      {/* Not printed comes first: it is the list you act on. */}
+      <div className="grid-2 grid-2-even">
+        <section className="panel">
+          <div className="panel-head">
+            <h2>{t('overview.notPrinted.title')}</h2>
+            <span className="spacer" />
+            <span className="badge neutral">{notPrinted.total}</span>
+          </div>
+          {notPrinted.items.length === 0 ? (
+            <div className="empty">
+              {term ? t('overview.search.noMatch', { term }) : t('overview.notPrinted.empty')}
+            </div>
+          ) : (
+            <div className="list list-scroll">
+              {notPrinted.items.map((file) => (
+                <div className="list-item" key={file.id}>
+                  <span className="grow">
+                    <div className="cell-main">{file.name}</div>
+                    <div className="cell-sub">
+                      {file.folderName ?? t('common.emptyValue')} · {formatBytes(file.size, locale)}
+                    </div>
+                  </span>
+                  <span className="badge neutral">{t('common.never')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="panel">
           <div className="panel-head">
             <h2>{t('overview.printed.title')}</h2>
@@ -121,33 +149,6 @@ export default function OverviewPanel({
                   <span className="count-pill">
                     {tn(file.printedCount, 'unit.prints.one', 'unit.prints.other')}
                   </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="panel">
-          <div className="panel-head">
-            <h2>{t('overview.notPrinted.title')}</h2>
-            <span className="spacer" />
-            <span className="badge neutral">{notPrinted.total}</span>
-          </div>
-          {notPrinted.items.length === 0 ? (
-            <div className="empty">
-              {term ? t('overview.search.noMatch', { term }) : t('overview.notPrinted.empty')}
-            </div>
-          ) : (
-            <div className="list list-scroll">
-              {notPrinted.items.map((file) => (
-                <div className="list-item" key={file.id}>
-                  <span className="grow">
-                    <div className="cell-main">{file.name}</div>
-                    <div className="cell-sub">
-                      {file.folderName ?? t('common.emptyValue')} · {formatBytes(file.size, locale)}
-                    </div>
-                  </span>
-                  <span className="badge neutral">{t('common.never')}</span>
                 </div>
               ))}
             </div>

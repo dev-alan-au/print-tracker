@@ -303,10 +303,69 @@ async function main(): Promise<void> {
     db.run('UPDATE folders SET name = ? WHERE id = ?', ['output', out.id])
   }
 
+  check('the printed and not-printed filters partition the file set', () => {
+    // Both checkboxes resolve to this one field, so it has to be exhaustive and
+    // non-overlapping or a file would show up in neither list, or in both.
+    const all = files.list({}).total
+    const printed = files.list({ printed: 'printed' })
+    const unprinted = files.list({ printed: 'unprinted' })
+
+    eq(printed.total + unprinted.total, all, 'every file lands in exactly one list')
+    assert(
+      printed.items.every((file) => file.printedCount > 0),
+      'nothing unprinted in the printed list'
+    )
+    assert(
+      unprinted.items.every((file) => file.printedCount === 0),
+      'nothing printed in the unprinted list'
+    )
+    eq(files.list({}).total, all, 'and an unfiltered query is unaffected')
+  })
+
   check('a wildcard in the search term is matched literally', () => {
     // Without escaping, "%" would become "%%%" and match every file.
     eq(files.list({ search: '%' }).total, 0, 'a bare % should not match everything')
     eq(files.list({ search: '_' }).total, 0, 'a bare _ should not match a single character')
+  })
+
+  check('search matches text that appears only in the path', () => {
+    // 'pt-e2e' is the root these fixtures live under. It appears in no file name
+    // and no folder name, so a match can only come from the path itself - which
+    // is how a user name buried in C:\\Users\\... would be found.
+    const all = files.list({}).total
+    assert(all > 0, 'expected indexed files')
+    eq(files.list({ search: 'pt-e2e' }).total, all, 'every file matches on its path')
+  })
+
+  check('search finds a Windows-style path by a mid-path fragment', () => {
+    // Reproduces the reported case: the term is in the user name part of the
+    // path, which never shows up in a file name or a watched folder name.
+    db.run('INSERT INTO folders (id, path, name, kind) VALUES (?, ?, ?, ?)', [
+      9001,
+      'C:\\Users\\alan\\Documents',
+      'Documents',
+      'library'
+    ])
+    db.run('INSERT INTO files (id, folder_id, path, name, ext, size) VALUES (?, ?, ?, ?, ?, ?)', [
+      9001,
+      9001,
+      'C:\\Users\\alan\\Documents\\quarterly.pdf',
+      'quarterly.pdf',
+      'pdf',
+      10
+    ])
+
+    try {
+      eq(files.list({ search: 'alan' }).total, 1, 'found by the user name in the path')
+      eq(files.list({ search: 'ALAN' }).total, 1, 'and case-insensitively')
+      // A single backslash, escaped for the SQL pattern under the hood, must
+      // still match the single separator in the stored path.
+      eq(files.list({ search: 'users\\alan' }).total, 1, 'and with the separator included')
+      eq(files.list({ search: 'quarterly' }).total, 1, 'and by the file name as before')
+    } finally {
+      db.run('DELETE FROM files WHERE id = ?', [9001])
+      db.run('DELETE FROM folders WHERE id = ?', [9001])
+    }
   })
 
   /* ----------------------------------------------- spooler degradation */

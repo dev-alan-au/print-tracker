@@ -57,7 +57,7 @@ export default function FilesPanel({
    */
   const [scope, setScope] = useState('all')
   const [directories, setDirectories] = useState<FolderDirectory[]>([])
-  const [onlyPrinted, setOnlyPrinted] = useState(false)
+  const [printFilter, setPrintFilter] = useState<'all' | 'printed' | 'unprinted'>('all')
   const [sort, setSort] = useState<NonNullable<FileQuery['sort']>>('name')
   const [direction, setDirection] = useState<'asc' | 'desc'>('asc')
 
@@ -95,7 +95,7 @@ export default function FilesPanel({
         window.api.files.list({
           ...scopeQuery,
           search: debouncedSearch,
-          printed: onlyPrinted ? 'printed' : undefined,
+          printed: printFilter === 'all' ? undefined : printFilter,
           sort,
           direction,
           limit: 500
@@ -110,7 +110,7 @@ export default function FilesPanel({
     } finally {
       setLoading(false)
     }
-  }, [scope, debouncedSearch, onlyPrinted, sort, direction, onToast, refreshToken])
+  }, [scope, debouncedSearch, printFilter, sort, direction, onToast, refreshToken])
 
   useEffect(() => {
     void load()
@@ -241,10 +241,21 @@ export default function FilesPanel({
           <label className="check">
             <input
               type="checkbox"
-              checked={onlyPrinted}
-              onChange={(event) => setOnlyPrinted(event.target.checked)}
+              checked={printFilter === 'printed'}
+              onChange={(event) => setPrintFilter(event.target.checked ? 'printed' : 'all')}
             />
             {t('files.printedOnly')}
+          </label>
+
+          {/* The two are opposite ends of one choice, so checking either clears
+              the other rather than letting both be on and match nothing. */}
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={printFilter === 'unprinted'}
+              onChange={(event) => setPrintFilter(event.target.checked ? 'unprinted' : 'all')}
+            />
+            {t('files.notPrintedOnly')}
           </label>
 
           <span className="spacer" />

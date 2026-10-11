@@ -212,6 +212,7 @@ export const ko: Catalog = {
   'files.sort.lastPrinted': '최근 인쇄순',
   'files.sort.size': '큰 파일순',
   'files.printedOnly': '인쇄된 항목만',
+  'files.notPrintedOnly': '인쇄 안 된 항목만',
   'files.loading': '파일을 불러오는 중…',
   'files.emptyTitle': '일치하는 파일이 없습니다',
   'files.emptyBody': '추적할 폴더를 추가하거나 위 필터를 완화하세요.',

@@ -534,6 +534,13 @@ textarea:focus {
   align-items: start;
 }
 
+/* The Overview's two lists are equal in importance, so they split the width
+   evenly. Declared here, before the narrow-screen rule below, so that rule
+   still wins and stacks them. */
+.grid-2-even {
+  grid-template-columns: 1fr 1fr;
+}
+
 @media (max-width: 1080px) {
   .grid-2 {
     grid-template-columns: 1fr;
