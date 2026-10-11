@@ -21,13 +21,27 @@ rmSync(DIR, { recursive: true, force: true })
 mkdirSync(DIR, { recursive: true })
 
 const source = readFileSync(join(PROJECT, 'src/main/db/schema.ts'), 'utf8')
-const v1 = source.match(/\/\* v0 -> v1 : initial schema \*\/\s*`([\s\S]*?)`/)[1]
-const v2 = source.match(/\/\* v1 -> v2 :[\s\S]*?\*\/\s*`([\s\S]*?)`/)[1]
+
+// Every migration, in order, rather than a hardcoded pair: this used to stop
+// at v2, so the demo database was missing the v3 index and every launch had to
+// migrate it. Comments are stripped first because one of them quotes a column
+// name in backticks, which would otherwise be mistaken for a template literal.
+const arrayText = source.match(/export const MIGRATIONS[^[]*\[([\s\S]*?)\n\]/)[1]
+const migrations = [
+  ...arrayText.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/`([\s\S]*?)`/g)
+].map((match) => match[1])
+
+const declared = Number(source.match(/SCHEMA_VERSION\s*=\s*(\d+)/)[1])
+if (migrations.length !== declared) {
+  throw new Error(
+    `Parsed ${migrations.length} migrations but schema.ts declares ${declared}. ` +
+      'The seeder needs updating.'
+  )
+}
 
 const db = new Database(join(DIR, 'print-tracker.db'))
-db.exec(v1)
-db.exec(v2)
-db.exec('PRAGMA user_version = 2')
+for (const migration of migrations) db.exec(migration)
+db.exec(`PRAGMA user_version = ${declared}`)
 
 const now = new Date().toISOString()
 const iso = (msAgo) => new Date(Date.now() - msAgo).toISOString()
