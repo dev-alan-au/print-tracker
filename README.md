@@ -66,6 +66,7 @@ Other scripts:
 npm run typecheck    # tsc for main/preload and for the renderer
 npm run build        # typecheck + bundle into out/
 npm test             # database + i18n + end-to-end suites
+npm run seed:demo    # fill a throwaway data dir with demo data for UI review
 npm run build:win    # Windows NSIS installer into release/
 npm run build:dir    # unpacked build, no installer
 ```

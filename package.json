@@ -15,6 +15,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck:editor": "tsc --noEmit -p tsconfig.json",
     "test:db": "node scripts/smoke-db.cjs",
+    "seed:demo": "node scripts/seed-demo.cjs",
     "test:i18n": "esbuild scripts/check-i18n.ts --bundle --platform=node --format=cjs --target=node22 --outfile=node_modules/.cache/pt-i18n.cjs --log-level=warning && node node_modules/.cache/pt-i18n.cjs",
     "test:e2e": "esbuild scripts/e2e-core.ts --bundle --platform=node --format=cjs --target=node22 --outfile=node_modules/.cache/pt-e2e.cjs --external:node-sqlite3-wasm --external:chokidar --alias:@shared=./src/shared --log-level=warning && node node_modules/.cache/pt-e2e.cjs",
     "test": "npm run test:db && npm run test:i18n && npm run test:e2e",
