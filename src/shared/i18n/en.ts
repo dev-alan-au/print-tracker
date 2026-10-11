@@ -267,6 +267,26 @@ export const en = {
   'settings.about.dataDir': 'Data directory',
   'settings.about.database': 'Database',
   'settings.about.sessionUptime': 'Session uptime',
+
+  /* ------------------------------------------------------- settings: reset */
+  'settings.reset.danger': 'Danger zone',
+  'settings.reset.description':
+    'Start over with an empty database. The tracked folders, indexed files and print history are all deleted. Files on disk are never touched.',
+  'settings.reset.open': 'Reset application…',
+  'settings.reset.title': 'Reset application data',
+  'settings.reset.intro': 'This will permanently delete:',
+  'settings.reset.folders': 'Tracked folders',
+  'settings.reset.files': 'Indexed files',
+  'settings.reset.prints': 'Print events',
+  'settings.reset.backups': 'Saved backups',
+  'settings.reset.warning':
+    'This cannot be undone. Your documents are not deleted — only what Print Tracker has recorded about them.',
+  'settings.reset.backupFirst': 'Save a backup first, so this can be undone',
+  'settings.reset.removeBackups': 'Also delete the {count} existing backup(s)',
+  'settings.reset.confirmWord': 'RESET',
+  'settings.reset.confirmLabel': 'Type {word} to confirm',
+  'settings.reset.confirm': 'Reset now',
+  'settings.reset.working': 'Resetting…',
   'settings.toast.copied': 'Database path copied.',
 
   /* -------------------------------------------------------- system toasts */

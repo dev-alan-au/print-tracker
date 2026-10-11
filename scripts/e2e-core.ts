@@ -14,6 +14,7 @@ import { FileService } from '../src/main/services/files'
 import { FolderService } from '../src/main/services/folders'
 import { PrintService } from '../src/main/services/prints'
 import { QueryService } from '../src/main/services/query'
+import { ResetService } from '../src/main/services/reset'
 import { SettingsService } from '../src/main/services/settings'
 import { SpoolerService } from '../src/main/services/spooler'
 import { WatcherService } from '../src/main/services/watcher'
@@ -375,6 +376,89 @@ async function main(): Promise<void> {
       threw = true
     }
     assert(threw, 'expected the service to refuse')
+  })
+
+  /* --------------------------------------------------------------- reset */
+
+  const reset = new ResetService(db, backups)
+
+  check('reset preview counts what is at risk', () => {
+    const preview = reset.preview()
+    eq(preview.counts.folders, 1, 'folders')
+    eq(preview.counts.files, files.list({}).total, 'files should match the list')
+    assert(preview.counts.prints >= 1, 'expected print events')
+    assert(preview.backups >= 1, 'expected backups')
+    assert(preview.databasePath.endsWith('print-tracker.db'), 'database path')
+  })
+
+  check('reset with a backup first keeps a recoverable snapshot', () => {
+    const before = reset.preview().counts
+    const report = reset.reset({ backupFirst: true, removeBackups: false })
+
+    eq(report.removed, before, 'the report echoes what was removed')
+    eq(report.backupsRemoved, 0, 'existing snapshots were kept')
+    assert(report.backup, 'expected a safety-net snapshot')
+
+    // A safety net that does not contain the deleted rows is not a safety net.
+    const copy = new Database(report.backup.path, { readOnly: true })
+    eq(
+      Number(copy.get('SELECT COUNT(*) AS c FROM folders').c),
+      before.folders,
+      'folders in the snapshot'
+    )
+    eq(
+      Number(copy.get('SELECT COUNT(*) AS c FROM files').c),
+      before.files,
+      'files in the snapshot'
+    )
+    copy.close()
+  })
+
+  check('reset leaves no rows behind', () => {
+    eq(reset.preview().counts, { folders: 0, files: 0, prints: 0 }, 'counts')
+    eq(files.list({}).total, 0, 'file list')
+    eq(prints.list({}).total, 0, 'print list')
+    eq(files.count(), 0, 'present file count')
+  })
+
+  check('reset keeps the schema, so no migration is replayed', () => {
+    // Rows are deleted rather than the file removed, so user_version and the
+    // indexes must survive untouched.
+    eq(Number(db.get('PRAGMA user_version')?.user_version ?? 0), 3, 'schema version')
+    const index = db.get<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_files_last_printed'"
+    )
+    assert(index, 'expected idx_files_last_printed to still exist')
+  })
+
+  check('reset clears the row id counters', () => {
+    const folder = folders.add({ path: library, kind: 'library' })
+    eq(folder.id, 1, 'the first folder after a reset should be id 1')
+    folders.remove(folder.id)
+  })
+
+  check('reset removes existing snapshots when asked, keeping the new one', () => {
+    backups.create('manual')
+    const before = backups.list().length
+    assert(before >= 2, `expected at least 2 snapshots, got ${before}`)
+
+    const report = reset.reset({ backupFirst: true, removeBackups: true })
+    eq(report.backupsRemoved, before, 'every pre-existing snapshot was deleted')
+    eq(backups.list().length, 1, 'only the safety-net snapshot remains')
+    eq(backups.list()[0].path, report.backup?.path, 'and it is the freshly taken one')
+  })
+
+  check('reset without a backup leaves nothing to restore from', () => {
+    const report = reset.reset({ backupFirst: false, removeBackups: true })
+    eq(report.backup, null, 'no snapshot was requested')
+    eq(backups.list().length, 0, 'and the older ones were removed')
+  })
+
+  check('settings fall back to their defaults after a reset', () => {
+    const current = settings.get()
+    eq(current.theme, 'light', 'theme')
+    eq(current.language, 'system', 'language')
+    eq(current.autoStartWatching, true, 'autoStartWatching')
   })
 
   watcher.stop()

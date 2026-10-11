@@ -269,6 +269,26 @@ export const ko: Catalog = {
   'settings.about.dataDir': '데이터 폴더',
   'settings.about.database': '데이터베이스',
   'settings.about.sessionUptime': '세션 실행 시간',
+
+  /* ------------------------------------------------------- settings: reset */
+  'settings.reset.danger': '위험 구역',
+  'settings.reset.description':
+    '빈 데이터베이스로 초기화합니다. 추적 중인 폴더, 색인된 파일, 인쇄 기록이 모두 삭제됩니다. 디스크의 파일은 삭제되지 않습니다.',
+  'settings.reset.open': '앱 초기화…',
+  'settings.reset.title': '앱 데이터 초기화',
+  'settings.reset.intro': '다음 항목이 영구적으로 삭제됩니다:',
+  'settings.reset.folders': '추적 중인 폴더',
+  'settings.reset.files': '색인된 파일',
+  'settings.reset.prints': '인쇄 기록',
+  'settings.reset.backups': '저장된 백업',
+  'settings.reset.warning':
+    '되돌릴 수 없습니다. 문서 자체는 삭제되지 않고, Print Tracker가 기록한 정보만 삭제됩니다.',
+  'settings.reset.backupFirst': '되돌릴 수 있도록 먼저 백업 저장',
+  'settings.reset.removeBackups': '기존 백업 {count}개도 함께 삭제',
+  'settings.reset.confirmWord': '초기화',
+  'settings.reset.confirmLabel': '확인하려면 {word}을(를) 입력하세요',
+  'settings.reset.confirm': '지금 초기화',
+  'settings.reset.working': '초기화 중…',
   'settings.toast.copied': '데이터베이스 경로를 복사했습니다.',
 
   /* -------------------------------------------------------- system toasts */

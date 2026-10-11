@@ -7,6 +7,7 @@ import type {
   FileQuery,
   ManualPrintInput,
   PrintQuery,
+  ResetOptions,
   UpdateFolderInput
 } from '@shared/types'
 import type { AppContext } from './app'
@@ -141,6 +142,28 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
   ipcMain.handle(IPC.query.run, (_event, sql: unknown, readOnly: unknown) => {
     if (typeof sql !== 'string') throw new Error('A SQL statement is required.')
     return ctx.query.run(sql, readOnly === true)
+  })
+
+  /* ----------------------------------------------------------- reset app */
+
+  ipcMain.handle(IPC.app.previewReset, () => ctx.reset.preview())
+
+  ipcMain.handle(IPC.app.reset, (_event, options: unknown) => {
+    const payload = asObject<ResetOptions>(options)
+    const report = ctx.resetApp({
+      backupFirst: payload.backupFirst === true,
+      removeBackups: payload.removeBackups === true
+    })
+
+    // The database no longer holds any snapshot history, so anything the
+    // renderer cached about it is stale - reload rather than patch each panel.
+    // Deferred so this reply is delivered first.
+    setTimeout(() => {
+      const window = getWindow()
+      if (window && !window.isDestroyed()) window.webContents.reload()
+    }, 400)
+
+    return report
   })
 
   /* ------------------------------------------------------------ settings */

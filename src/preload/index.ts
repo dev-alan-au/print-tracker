@@ -13,6 +13,9 @@ import type {
   PrintQuery,
   PrintTrackerApi,
   QueryResult,
+  ResetOptions,
+  ResetPreview,
+  ResetReport,
   SchemaTable,
   SpoolerStatus,
   ToastMessage,
@@ -81,6 +84,11 @@ const api: PrintTrackerApi = {
     schema: () => ipcRenderer.invoke(IPC.query.schema) as Promise<SchemaTable[]>,
     run: (sql: string, readOnly: boolean) =>
       ipcRenderer.invoke(IPC.query.run, sql, readOnly) as Promise<QueryResult>
+  },
+  app: {
+    previewReset: () => ipcRenderer.invoke(IPC.app.previewReset) as Promise<ResetPreview>,
+    reset: (options: ResetOptions) =>
+      ipcRenderer.invoke(IPC.app.reset, options) as Promise<ResetReport>
   },
   events: {
     onFilesChanged: (callback: () => void) => subscribe<void>(IPC.events.filesChanged, callback),

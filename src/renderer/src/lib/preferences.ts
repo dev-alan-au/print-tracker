@@ -50,3 +50,19 @@ export function writeCachedTheme(theme: AppTheme): void {
 export function applyTheme(theme: AppTheme): void {
   document.documentElement.dataset['theme'] = theme
 }
+
+/**
+ * Drops the first-paint cache.
+ *
+ * Called when the application is reset: the database - the source of truth for
+ * these preferences - is empty again, so a stale cache would keep painting the
+ * previous theme and language until the settings round trip completed.
+ */
+export function clearCachedPreferences(): void {
+  try {
+    window.localStorage.removeItem(LANGUAGE_KEY)
+    window.localStorage.removeItem(THEME_KEY)
+  } catch {
+    /* storage unavailable; nothing was cached to begin with */
+  }
+}

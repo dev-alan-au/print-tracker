@@ -129,6 +129,41 @@ function createWindow(): void {
                 await new Promise((resolve) => setTimeout(resolve, 900))
               }
 
+              // `PT_DEBUG_RESET=open` shows the reset dialog on the settings
+              // shot; `PT_DEBUG_RESET=apply` also types the confirmation and
+              // clicks through, so the whole wipe can be exercised end to end.
+              const resetMode = process.env['PT_DEBUG_RESET']
+              if (resetMode && tabs[index] === 'settings') {
+                const fill = (selector: string, value: string): string => `(() => {
+                   const element = document.querySelector(${JSON.stringify(selector)})
+                   if (!element) return 'missing'
+                   const proto = element instanceof HTMLTextAreaElement
+                     ? HTMLTextAreaElement.prototype
+                     : HTMLInputElement.prototype
+                   Object.getOwnPropertyDescriptor(proto, 'value').set.call(
+                     element,
+                     ${JSON.stringify(value)}
+                   )
+                   element.dispatchEvent(new Event('input', { bubbles: true }))
+                   return 'set'
+                 })()`
+
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelector('.danger-zone .btn.danger')?.click()`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 900))
+
+                if (resetMode === 'apply') {
+                  await mainWindow?.webContents.executeJavaScript(fill('#reset-confirm', 'RESET'))
+                  await new Promise((resolve) => setTimeout(resolve, 400))
+                  await mainWindow?.webContents.executeJavaScript(
+                    `document.querySelector('.modal-foot .btn.danger')?.click()`
+                  )
+                  // Wipe, then the reload main schedules 400 ms later.
+                  await new Promise((resolve) => setTimeout(resolve, 3000))
+                }
+              }
+
               const image = await mainWindow?.webContents.capturePage()
               if (image) {
                 const file = `${base}-${tabs[index]}.png`

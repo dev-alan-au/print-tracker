@@ -2,6 +2,8 @@ import { dirname, join } from 'node:path'
 import type {
   AddFolderInput,
   PrintEvent,
+  ResetOptions,
+  ResetReport,
   SpoolerStatus,
   ToastMessage,
   TrackedFolder,
@@ -13,6 +15,7 @@ import { FileService } from './services/files'
 import { FolderService } from './services/folders'
 import { PrintService } from './services/prints'
 import { QueryService } from './services/query'
+import { ResetService } from './services/reset'
 import { SettingsService } from './services/settings'
 import { SpoolerService } from './services/spooler'
 import { WatcherService } from './services/watcher'
@@ -34,6 +37,7 @@ export interface AppContext {
   readonly spooler: SpoolerService
   readonly backups: BackupService
   readonly query: QueryService
+  readonly reset: ResetService
   readonly databasePath: string
 
   addFolder(input: AddFolderInput): TrackedFolder
@@ -41,6 +45,7 @@ export interface AppContext {
   removeFolder(id: number): void
   rescanFolder(id: number): number
   rescanAll(): number
+  resetApp(options: ResetOptions): ResetReport
   startWatching(): void
   stopWatching(): void
   dispose(): void
@@ -56,6 +61,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   // Snapshots live beside the database so the two travel together.
   const backups = new BackupService(db, join(dirname(databasePath), 'backups'))
   const query = new QueryService(db)
+  const reset = new ResetService(db, backups)
 
   const watcher = new WatcherService(
     folders,
@@ -124,6 +130,20 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     events.filesChanged()
   }
 
+  /**
+   * Wipes the database, then brings the runtime back in line with it.
+   *
+   * `watcher.refresh()` is the important half: it derives its watch set from
+   * the folders table, so an emptied table leaves every directory unwatched
+   * without a separate shutdown path.
+   */
+  const resetApp = (options: ResetOptions): ResetReport => {
+    const report = reset.reset(options)
+    watcher.refresh()
+    events.filesChanged()
+    return report
+  }
+
   const stopWatching = (): void => {
     watcher.stop()
   }
@@ -138,12 +158,14 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     spooler,
     backups,
     query,
+    reset,
     databasePath,
     addFolder,
     updateFolder,
     removeFolder,
     rescanFolder,
     rescanAll,
+    resetApp,
     startWatching,
     stopWatching,
     dispose(): void {

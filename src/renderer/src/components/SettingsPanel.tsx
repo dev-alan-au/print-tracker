@@ -10,6 +10,7 @@ import type {
 } from '@shared/types'
 import { useI18n } from '../i18n'
 import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
+import ResetDialog from './ResetDialog'
 
 export default function SettingsPanel({
   refreshToken,
@@ -31,6 +32,7 @@ export default function SettingsPanel({
   const [printers, setPrinters] = useState<string[]>([])
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [busy, setBusy] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -392,6 +394,22 @@ export default function SettingsPanel({
           </dl>
         </div>
       </section>
+
+      <section className="panel danger-zone">
+        <div className="panel-head">
+          <h2>{t('settings.reset.danger')}</h2>
+        </div>
+        <div className="panel-body">
+          <p className="panel-note">{t('settings.reset.description')}</p>
+          <button type="button" className="btn danger" onClick={() => setResetOpen(true)}>
+            {t('settings.reset.open')}
+          </button>
+        </div>
+      </section>
+
+      {resetOpen ? (
+        <ResetDialog onClose={() => setResetOpen(false)} onToast={onToast} />
+      ) : null}
     </>
   )
 }

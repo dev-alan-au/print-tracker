@@ -44,6 +44,10 @@ export const IPC = {
     schema: 'query:schema',
     run: 'query:run'
   },
+  app: {
+    previewReset: 'app:preview-reset',
+    reset: 'app:reset'
+  },
   events: {
     filesChanged: 'event:files-changed',
     printRecorded: 'event:print-recorded',

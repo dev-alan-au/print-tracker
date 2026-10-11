@@ -183,7 +183,6 @@ export interface BackupEntry {
 }
 
 /* ------------------------------------------------------------------ query */
-
 export interface QueryColumn {
   name: string
   type: string
@@ -204,6 +203,37 @@ export interface QueryResult {
   changes: number | null
   /** True when the statement ran in read-only mode and was rolled back. */
   rolledBack: boolean
+}
+
+/* ------------------------------------------------------------------ reset */
+
+/** Row counts a reset would destroy, shown to the user before they commit. */
+export interface ResetCounts {
+  folders: number
+  files: number
+  prints: number
+}
+
+export interface ResetPreview {
+  counts: ResetCounts
+  /** Snapshots already on disk, which may also be deleted. */
+  backups: number
+  databasePath: string
+  backupsDir: string
+}
+
+export interface ResetOptions {
+  /** Snapshot the current data before wiping it, so the reset is reversible. */
+  backupFirst: boolean
+  /** Also delete the snapshots that already exist on disk. */
+  removeBackups: boolean
+}
+
+export interface ResetReport {
+  removed: ResetCounts
+  /** The safety-net snapshot, when one was requested. */
+  backup: BackupEntry | null
+  backupsRemoved: number
 }
 
 /* ---------------------------------------------------------------- settings */
@@ -299,6 +329,10 @@ export interface PrintTrackerApi {
   query: {
     schema(): Promise<SchemaTable[]>
     run(sql: string, readOnly: boolean): Promise<QueryResult>
+  }
+  app: {
+    previewReset(): Promise<ResetPreview>
+    reset(options: ResetOptions): Promise<ResetReport>
   }
   events: {
     onFilesChanged(cb: () => void): () => void
