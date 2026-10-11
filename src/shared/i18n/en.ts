@@ -223,6 +223,15 @@ export const en = {
   'settings.spooler.enableLog':
     'The operational print log is disabled, so completed jobs are inferred from the print queue. For exact page counts and document names, enable it once from an elevated PowerShell:',
 
+  'settings.backups.title': 'Backups',
+  'settings.backups.description':
+    'A snapshot is written every time the app starts, and the ten most recent are kept.',
+  'settings.backups.create': 'Back up now',
+  'settings.backups.empty': 'No backups yet.',
+  'settings.backups.created': 'Backup created.',
+  'settings.backups.removed': 'Backup deleted.',
+  'settings.backups.confirmRemove': 'Delete this backup?\n\n{name}',
+
   'settings.watching.title': 'Folder watching',
   'settings.watching.autoStart': 'watch folders while the app is running',
   'settings.watching.stability': 'Wait for writes to settle (ms)',

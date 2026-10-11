@@ -151,6 +151,9 @@ if (!app.requestSingleInstanceLock()) {
 
     registerIpc(ctx, () => mainWindow)
 
+    // Snapshot every launch, before anything gets a chance to modify the data.
+    ctx.backups.createOnLaunch()
+
     const settings = ctx.settings.get()
     if (settings.autoStartWatching) ctx.startWatching()
     if (settings.spoolerEnabled) ctx.spooler.start(settings.spoolerPollIntervalMs)

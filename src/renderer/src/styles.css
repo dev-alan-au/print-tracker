@@ -303,6 +303,15 @@ code {
   padding: 0;
 }
 
+/* Explanatory line at the top of a flush panel body. */
+.panel-note {
+  margin: 0;
+  padding: 12px 15px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border);
+}
+
 /* ----------------------------------------------------------------- cards */
 
 .stat-grid {

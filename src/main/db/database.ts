@@ -83,6 +83,14 @@ export class Db {
     this.db.exec(sql)
   }
 
+  /**
+   * Writes a consistent single-file snapshot of the whole database, including
+   * anything still sitting in the WAL. Fails if `target` already exists.
+   */
+  backupTo(target: string): void {
+    this.db.run('VACUUM INTO ?', [target])
+  }
+
   /** Runs `fn` inside a transaction, rolling back on any thrown error. */
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN')

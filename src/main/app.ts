@@ -1,3 +1,4 @@
+import { dirname, join } from 'node:path'
 import type {
   AddFolderInput,
   PrintEvent,
@@ -7,6 +8,7 @@ import type {
   UpdateFolderInput
 } from '@shared/types'
 import { Db } from './db/database'
+import { BackupService } from './services/backups'
 import { FileService } from './services/files'
 import { FolderService } from './services/folders'
 import { PrintService } from './services/prints'
@@ -29,6 +31,7 @@ export interface AppContext {
   readonly settings: SettingsService
   readonly watcher: WatcherService
   readonly spooler: SpoolerService
+  readonly backups: BackupService
   readonly databasePath: string
 
   addFolder(input: AddFolderInput): TrackedFolder
@@ -47,6 +50,9 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
   const files = new FileService(db)
   const prints = new PrintService(db)
   const settings = new SettingsService(db)
+
+  // Snapshots live beside the database so the two travel together.
+  const backups = new BackupService(db, join(dirname(databasePath), 'backups'))
 
   const watcher = new WatcherService(
     folders,
@@ -127,6 +133,7 @@ export function createApp(databasePath: string, events: AppEvents): AppContext {
     settings,
     watcher,
     spooler,
+    backups,
     databasePath,
     addFolder,
     updateFolder,

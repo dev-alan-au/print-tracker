@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LOCALE_LABELS, LOCALES, type AppLanguage } from '@shared/i18n'
-import type { AppInfo, AppSettings, AppTheme, SpoolerStatus, ToastMessage } from '@shared/types'
+import type {
+  AppInfo,
+  AppSettings,
+  AppTheme,
+  BackupEntry,
+  SpoolerStatus,
+  ToastMessage
+} from '@shared/types'
 import { useI18n } from '../i18n'
-import { errorMessage, formatDateTime, formatRelative } from '../lib/format'
+import { errorMessage, formatBytes, formatDateTime, formatRelative } from '../lib/format'
 
 export default function SettingsPanel({
   refreshToken,
@@ -22,16 +29,19 @@ export default function SettingsPanel({
   const { t, locale } = useI18n()
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [printers, setPrinters] = useState<string[]>([])
+  const [backups, setBackups] = useState<BackupEntry[]>([])
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      const [nextInfo, status] = await Promise.all([
+      const [nextInfo, status, nextBackups] = await Promise.all([
         window.api.settings.appInfo(),
-        window.api.spooler.status()
+        window.api.spooler.status(),
+        window.api.backups.list()
       ])
       setInfo(nextInfo)
       onSpoolerStatus(status)
+      setBackups(nextBackups)
     } catch (caught) {
       onToast({ kind: 'error', message: errorMessage(caught) })
     }
@@ -83,6 +93,30 @@ export default function SettingsPanel({
       onToast({ kind: 'error', message: errorMessage(caught) })
     } finally {
       setBusy(false)
+    }
+  }
+
+  const createBackup = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      await window.api.backups.create()
+      onToast({ kind: 'success', messageKey: 'settings.backups.created' })
+      setBackups(await window.api.backups.list())
+    } catch (caught) {
+      onToast({ kind: 'error', message: errorMessage(caught) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeBackup = async (entry: BackupEntry): Promise<void> => {
+    if (!window.confirm(t('settings.backups.confirmRemove', { name: entry.name }))) return
+    try {
+      await window.api.backups.remove(entry.path)
+      onToast({ kind: 'info', messageKey: 'settings.backups.removed' })
+      setBackups(await window.api.backups.list())
+    } catch (caught) {
+      onToast({ kind: 'error', message: errorMessage(caught) })
     }
   }
 
@@ -250,6 +284,43 @@ export default function SettingsPanel({
               <code>wevtutil sl Microsoft-Windows-PrintService/Operational /e:true</code>
             </div>
           ) : null}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>{t('settings.backups.title')}</h2>
+          <span className="spacer" />
+          <button type="button" className="btn" disabled={busy} onClick={() => void createBackup()}>
+            {t('settings.backups.create')}
+          </button>
+        </div>
+        <div className="panel-body flush">
+          <p className="panel-note">{t('settings.backups.description')}</p>
+          {backups.length === 0 ? (
+            <div className="empty">{t('settings.backups.empty')}</div>
+          ) : (
+            <div className="list">
+              {backups.map((entry) => (
+                <div className="list-item" key={entry.path}>
+                  <span className="grow">
+                    <div className="cell-main">{entry.name}</div>
+                    <div className="cell-sub">
+                      {formatDateTime(entry.createdAt, locale)} ·{' '}
+                      {formatBytes(entry.size, locale)}
+                    </div>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn tiny danger"
+                    onClick={() => void removeBackup(entry)}
+                  >
+                    {t('common.delete')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

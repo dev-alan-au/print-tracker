@@ -225,6 +225,15 @@ export const ko: Catalog = {
   'settings.spooler.enableLog':
     '운영 인쇄 로그가 비활성화되어 있어 완료된 작업을 인쇄 큐에서 추정합니다. 정확한 페이지 수와 문서 이름을 얻으려면 관리자 권한 PowerShell에서 한 번 활성화하세요:',
 
+  'settings.backups.title': '백업',
+  'settings.backups.description':
+    '앱을 시작할 때마다 스냅샷을 만들고 최근 10개를 보관합니다.',
+  'settings.backups.create': '지금 백업',
+  'settings.backups.empty': '백업이 없습니다.',
+  'settings.backups.created': '백업을 만들었습니다.',
+  'settings.backups.removed': '백업을 삭제했습니다.',
+  'settings.backups.confirmRemove': '이 백업을 삭제할까요?\n\n{name}',
+
   'settings.watching.title': '폴더 감시',
   'settings.watching.autoStart': '앱 실행 중 폴더 감시',
   'settings.watching.stability': '쓰기 완료 대기(ms)',

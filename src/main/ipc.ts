@@ -123,6 +123,17 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
 
   ipcMain.handle(IPC.spooler.listPrinters, () => ctx.spooler.listPrinters())
 
+  /* ------------------------------------------------------------- backups */
+
+  ipcMain.handle(IPC.backups.list, () => ctx.backups.list())
+
+  ipcMain.handle(IPC.backups.create, () => ctx.backups.create('manual'))
+
+  ipcMain.handle(IPC.backups.remove, (_event, path: unknown) => {
+    if (typeof path !== 'string') throw new Error('A backup path is required.')
+    ctx.backups.remove(path)
+  })
+
   /* ------------------------------------------------------------ settings */
 
   ipcMain.handle(IPC.settings.get, () => ctx.settings.get())
@@ -152,7 +163,8 @@ export function registerIpc(ctx: AppContext, getWindow: () => BrowserWindow | nu
       chrome: process.versions.chrome ?? 'unknown',
       platform: process.platform,
       dataDir: app.getPath('userData'),
-      databasePath: ctx.databasePath
+      databasePath: ctx.databasePath,
+      backupsDir: ctx.backups.directory
     }
   })
 }

@@ -35,6 +35,11 @@ export const IPC = {
     update: 'settings:update',
     appInfo: 'settings:app-info'
   },
+  backups: {
+    list: 'backups:list',
+    create: 'backups:create',
+    remove: 'backups:remove'
+  },
   events: {
     filesChanged: 'event:files-changed',
     printRecorded: 'event:print-recorded',

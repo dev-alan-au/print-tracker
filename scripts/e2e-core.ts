@@ -5,9 +5,11 @@
  * FolderService / FileService / PrintService / WatcherService against a
  * throwaway directory tree.
  */
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { Database } from 'node-sqlite3-wasm'
 import { Db } from '../src/main/db/database'
+import { BackupService } from '../src/main/services/backups'
 import { FileService } from '../src/main/services/files'
 import { FolderService } from '../src/main/services/folders'
 import { PrintService } from '../src/main/services/prints'
@@ -210,6 +212,52 @@ async function main(): Promise<void> {
     eq(updated.minFileStabilityMs, 900, 'updated value')
     eq(updated.autoStartWatching, true, 'default preserved')
     eq(settings.get().minFileStabilityMs, 900, 'read back')
+  })
+
+  /* ------------------------------------------------------------- backups */
+
+  const backups = new BackupService(db, join(ROOT, 'backups'))
+
+  check('a backup is a complete, reopenable snapshot', () => {
+    const entry = backups.create('manual')
+    assert(existsSync(entry.path), 'backup file should exist')
+    assert(entry.size > 0, 'backup should not be empty')
+
+    const copy = new Database(entry.path, { readOnly: true })
+    eq(Number(copy.get('SELECT COUNT(*) AS c FROM folders').c), 1, 'folders in the backup')
+    eq(Number(copy.get('SELECT COUNT(*) AS c FROM print_events').c), 1, 'events in the backup')
+    eq(Number(copy.get('PRAGMA user_version').user_version), 3, 'schema version in the backup')
+    copy.close()
+  })
+
+  check('backups are listed newest first', () => {
+    const second = backups.create('manual')
+    const list = backups.list()
+    assert(list.length >= 2, `expected two backups, got ${list.length}`)
+    eq(list[0].name, second.name, 'the newest backup is first')
+  })
+
+  check('a launch backup is created and listed', () => {
+    const entry = backups.createOnLaunch()
+    assert(entry, 'expected a launch backup')
+    assert(backups.list().length >= 3, 'the launch backup should be listed')
+  })
+
+  check('deleting a backup removes only that file', () => {
+    const before = backups.list()
+    backups.remove(before[0].path)
+    eq(backups.list().length, before.length - 1, 'one fewer backup')
+    assert(!existsSync(before[0].path), 'the file should be gone')
+  })
+
+  check('deleting outside the backup directory is refused', () => {
+    let threw = false
+    try {
+      backups.remove(join(ROOT, 'print-tracker.db'))
+    } catch {
+      threw = true
+    }
+    assert(threw, 'expected the service to refuse')
   })
 
   watcher.stop()

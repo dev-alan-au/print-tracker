@@ -173,6 +173,15 @@ export interface SpoolerStatus {
   lastErrorAt: string | null
 }
 
+/* ----------------------------------------------------------------- backups */
+
+export interface BackupEntry {
+  name: string
+  path: string
+  size: number
+  createdAt: string
+}
+
 /* ---------------------------------------------------------------- settings */
 
 export interface AppSettings {
@@ -195,6 +204,7 @@ export interface AppInfo {
   platform: string
   dataDir: string
   databasePath: string
+  backupsDir: string
 }
 
 /* ------------------------------------------------------------------- misc */
@@ -256,6 +266,11 @@ export interface PrintTrackerApi {
     get(): Promise<AppSettings>
     update(patch: Partial<AppSettings>): Promise<AppSettings>
     appInfo(): Promise<AppInfo>
+  }
+  backups: {
+    list(): Promise<BackupEntry[]>
+    create(): Promise<BackupEntry>
+    remove(path: string): Promise<void>
   }
   events: {
     onFilesChanged(cb: () => void): () => void

@@ -4,6 +4,7 @@ import type {
   AddFolderInput,
   AppInfo,
   AppSettings,
+  BackupEntry,
   DashboardStats,
   FileQuery,
   ManualPrintInput,
@@ -68,6 +69,11 @@ const api: PrintTrackerApi = {
     update: (patch: Partial<AppSettings>) =>
       ipcRenderer.invoke(IPC.settings.update, patch) as Promise<AppSettings>,
     appInfo: () => ipcRenderer.invoke(IPC.settings.appInfo) as Promise<AppInfo>
+  },
+  backups: {
+    list: () => ipcRenderer.invoke(IPC.backups.list) as Promise<BackupEntry[]>,
+    create: () => ipcRenderer.invoke(IPC.backups.create) as Promise<BackupEntry>,
+    remove: (path: string) => ipcRenderer.invoke(IPC.backups.remove, path) as Promise<void>
   },
   events: {
     onFilesChanged: (callback: () => void) => subscribe<void>(IPC.events.filesChanged, callback),
