@@ -474,10 +474,48 @@ async function main(): Promise<void> {
     eq(list[0].name, second.name, 'the newest backup is first')
   })
 
-  check('a launch backup is created and listed', () => {
+  check('an unchanged database is not snapshotted again', () => {
+    // The checks above just took a manual snapshot, so nothing has moved since.
+    // A snapshot per launch would otherwise spend all ten slots on identical
+    // copies of an idle database.
+    eq(backups.hasChangedSinceLastSnapshot(), false, 'it knows nothing changed')
+    eq(backups.createOnLaunch(), null, 'so no launch snapshot is written')
+  })
+
+  check('a change is picked up by the next launch snapshot', () => {
+    prints.addManual({ documentName: 'changed-since-the-snapshot' })
+    eq(backups.hasChangedSinceLastSnapshot(), true, 'the change is detected')
+
     const entry = backups.createOnLaunch()
-    assert(entry, 'expected a launch backup')
-    assert(backups.list().length >= 3, 'the launch backup should be listed')
+    assert(entry, 'expected a launch backup once something changed')
+    eq(backups.hasChangedSinceLastSnapshot(), false, 'and it is up to date afterwards')
+  })
+
+  check('rescanning alone does not count as a change', () => {
+    // last_seen_at churn touches every row without changing anything a snapshot
+    // needs to preserve, so it must not qualify as a change.
+    db.run('UPDATE files SET last_seen_at = ?', [new Date().toISOString()])
+    eq(backups.hasChangedSinceLastSnapshot(), false, 'churn is not a change')
+  })
+
+  check('no more than ten snapshots are kept, newest first', () => {
+    for (let index = 0; index < 14; index++) {
+      prints.addManual({ documentName: `prune-probe-${index}` })
+      backups.create('manual')
+    }
+
+    const list = backups.list()
+    eq(list.length, 10, 'pruned to the limit')
+    // Pruning must drop the oldest. If it kept the wrong end, the survivors
+    // would still number ten while losing everything recent.
+    const newest = backups.create('manual')
+    const after = backups.list()
+    eq(after.length, 10, 'still capped after another snapshot')
+    eq(after[0].name, newest.name, 'and the newest one is at the top')
+    assert(
+      !after.some((entry) => entry.name === list[list.length - 1].name),
+      'the oldest of the previous ten was the one dropped'
+    )
   })
 
   check('deleting a backup removes only that file', () => {
