@@ -312,7 +312,6 @@ code {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  height: 132px;
   padding-top: 8px;
 }
 
@@ -322,15 +321,15 @@ code {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  height: 100%;
   min-width: 0;
 }
 
 .chart-bar-wrap {
-  flex: 1;
   width: 100%;
   display: flex;
   align-items: flex-end;
+  /* Height comes from the inline style, driven by PLOT_HEIGHT in Dashboard.tsx,
+     so the bar heights in pixels and their container cannot disagree. */
 }
 
 .chart-bar {
@@ -341,7 +340,7 @@ code {
   transition: height 0.25s ease;
 }
 
-.chart-bar.empty {
+.chart-bar.is-empty {
   background: var(--bg-elevated);
 }
 

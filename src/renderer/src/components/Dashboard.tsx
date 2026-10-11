@@ -5,6 +5,13 @@ import SourceBadge from './SourceBadge'
 
 const SOURCE_ORDER: PrintSource[] = ['watcher', 'spooler', 'manual']
 
+/**
+ * Plot height in pixels. Bar heights are computed from this, so the chart does
+ * not depend on CSS percentage resolution inside a flex column - which proved
+ * unreliable here and made every bar stretch to fill its column.
+ */
+const PLOT_HEIGHT = 84
+
 const SOURCE_DESCRIPTION_KEYS: Record<PrintSource, MessageKey> = {
   watcher: 'dashboard.sources.watcher',
   spooler: 'dashboard.sources.spooler',
@@ -89,11 +96,11 @@ export default function Dashboard({
                   })}
                 >
                   <div className="chart-value">{entry.count > 0 ? entry.count : ''}</div>
-                  <div className="chart-bar-wrap">
+                  <div className="chart-bar-wrap" style={{ height: PLOT_HEIGHT }}>
                     <div
-                      className={`chart-bar${entry.count === 0 ? ' empty' : ''}`}
+                      className={`chart-bar${entry.count === 0 ? ' is-empty' : ''}`}
                       style={{
-                        height: `${entry.count === 0 ? 3 : Math.max(4, (entry.count / maxPerDay) * 100)}%`
+                        height: Math.max(3, Math.round((entry.count / maxPerDay) * PLOT_HEIGHT))
                       }}
                     />
                   </div>

@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BrowserWindow, app, shell } from 'electron'
 import { IPC } from '@shared/ipc'
@@ -78,6 +79,35 @@ function createWindow(): void {
             console.error('[pt-debug] probe failed:', error)
           })
       }, 1500)
+
+      // `PT_DEBUG_SHOT=/tmp/ui.png` writes one PNG per screen. Handy when you
+      // cannot look at the window directly (remote box, CI, bug report).
+      const shotPath = process.env['PT_DEBUG_SHOT']
+      if (shotPath) {
+        const base = shotPath.replace(/\.png$/i, '')
+        const tabs = ['dashboard', 'folders', 'files', 'history', 'settings']
+
+        setTimeout(() => {
+          void (async () => {
+            for (let index = 0; index < tabs.length; index++) {
+              if (index > 0) {
+                await mainWindow?.webContents.executeJavaScript(
+                  `document.querySelectorAll('.nav-item')[${index}]?.click()`
+                )
+              }
+              await new Promise((resolve) => setTimeout(resolve, 900))
+              const image = await mainWindow?.webContents.capturePage()
+              if (image) {
+                const file = `${base}-${tabs[index]}.png`
+                writeFileSync(file, image.toPNG())
+                console.log('[pt-debug] screenshot:', file)
+              }
+            }
+          })().catch((error: unknown) => {
+            console.error('[pt-debug] screenshot failed:', error)
+          })
+        }, 3000)
+      }
     })
   }
 

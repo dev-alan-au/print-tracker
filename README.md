@@ -70,6 +70,17 @@ npm run build:win    # Windows NSIS installer into release/
 npm run build:dir    # unpacked build, no installer
 ```
 
+### Debugging the UI
+
+```bash
+PT_DEBUG=1 npm run dev                             # report renderer state once it has loaded
+PT_DEBUG=1 PT_DEBUG_SHOT=/tmp/ui.png npm run dev   # ...and write one PNG per screen
+```
+
+Handy on a machine you cannot look at directly (remote box, CI, bug report).
+`PT_DEBUG` logs whether `window.api` reached the renderer and how the app mounted;
+`PT_DEBUG_SHOT` also walks the navigation and saves a screenshot of each screen.
+
 ## Windows print spooler setup
 
 By default the operational print log is **disabled**, so Print Tracker falls back
